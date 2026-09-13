@@ -1,16 +1,21 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v1';
+const CACHE = 'kids-games-v2';
 const ASSETS = [
   './kids.html',
   './tiaoqi.html',
+  './doushouqi.html',
   './kids.webmanifest',
   './tiaoqi.webmanifest',
+  './doushouqi.webmanifest',
   './icons/wuziqi-180.png',
   './icons/wuziqi-192.png',
   './icons/wuziqi-512.png',
   './icons/tiaoqi-180.png',
   './icons/tiaoqi-192.png',
   './icons/tiaoqi-512.png',
+  './icons/doushouqi-180.png',
+  './icons/doushouqi-192.png',
+  './icons/doushouqi-512.png',
 ];
 
 self.addEventListener('install', (event) => {
