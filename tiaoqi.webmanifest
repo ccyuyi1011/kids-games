@@ -1,0 +1,16 @@
+{
+  "name": "跳棋乐园",
+  "short_name": "跳棋",
+  "id": "./tiaoqi.html",
+  "start_url": "./tiaoqi.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#ffe8f1",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/tiaoqi-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/tiaoqi-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
