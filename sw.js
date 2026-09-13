@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v4';
+const CACHE = 'kids-games-v5';
 const ASSETS = [
   './kids.html',
   './tiaoqi.html',

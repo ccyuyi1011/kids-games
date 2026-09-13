@@ -1500,7 +1500,7 @@ const JungleAI = (() => {
   })();
 
   /* ============== 游戏状态 ============== */
-  const noDanger = () => ({ threatened: [], denAttackers: [], canWin: false, bestCapture: null, key: '' });
+  const noDanger = () => ({ threatened: [], denAttackers: [], canWin: false, bestCapture: null, denSavable: true, askable: true, key: '' });
 
   const S = {
     screen: 'menu',
@@ -1570,14 +1570,17 @@ const JungleAI = (() => {
     d.threatened = [...threatened];
     d.denAttackers = [...attackers];
     let best = null;
-    for (const m of J.legalMoves(S.board, s)) {
-      const info = moveInfo(m);
+    const infos = J.legalMoves(S.board, s).map((m) => Object.assign({ from: m.from }, moveInfo(m)));
+    for (const info of infos) {
       if (info.win) d.canWin = true;
-      if (m.capture && (!info.danger || info.capV >= info.myV)) {
-        if (!best || info.capV > best.capV) best = Object.assign({ from: m.from }, info);
+      if (info.capture && (!info.danger || info.capV >= info.myV)) {
+        if (!best || info.capV > best.capV) best = info;
       }
     }
     d.bestCapture = best;
+    // 有没有一步能挡住对方进家；每一步都要“再想想”时就不问了（问了也没有更好的走法）
+    d.denSavable = infos.some((x) => x.win || !x.denOpen);
+    d.askable = infos.some((x) => !needConfirm(x, d));
     d.key = d.threatened.join(',') + '|' + d.denAttackers.join(',');
   }
 
@@ -1603,14 +1606,20 @@ const JungleAI = (() => {
       capV,
       myV,
       eater: eaterMove ? nb[eaterMove.from] : 0,
-      // 需要“再想想”：会让对方进家，或者白白被吃
-      confirm: !win && (denOpen || (danger && capV < myV)),
     };
+  }
+
+  // 需要“再想想”：会让对方进家（前提是有别的走法能挡住），或者白白被吃
+  function needConfirm(x, d) {
+    return !x.win && ((x.denOpen && d.denSavable) || (x.danger && x.capV < x.myV));
   }
 
   function movesFrom(i) {
     const s = sideOf(S.board[i]);
-    return J.legalMoves(S.board, s).filter((m) => m.from === i).map(moveInfo);
+    const d = S.danger;
+    const ds = J.legalMoves(S.board, s).filter((m) => m.from === i).map(moveInfo);
+    ds.forEach((x) => { x.confirm = d.askable && needConfirm(x, d); });
+    return ds;
   }
 
   /* ============== 游戏流程 ============== */
@@ -2591,7 +2600,7 @@ const JungleAI = (() => {
         cls = 'red';
         const a = animalOf(S.board[d.denAttackers[0]]).e;
         main = [`⚠️ ${oppWho(p)}的 ${a}`, '要进你的家啦！'];
-        small = '快吃掉它，或者挡住它！';
+        small = d.denSavable ? '快吃掉它，或者挡住它！' : '这次来不及了，下次早点派动物回家守着';
       } else if (d.threatened.length) {
         cls = 'red';
         const a = animalOf(S.board[d.threatened[0]]).e;

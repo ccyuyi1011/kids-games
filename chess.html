@@ -1629,7 +1629,7 @@ const ChessAI = (() => {
   })();
 
   /* ============== 游戏状态 ============== */
-  const noDanger = () => ({ check: false, checkers: [], king: -1, hanging: [], mateThreat: false, canMate: null, bestCapture: null, key: '' });
+  const noDanger = () => ({ check: false, checkers: [], king: -1, hanging: [], mateThreat: false, canMate: null, bestCapture: null, alt: null, key: '' });
 
   const S = {
     screen: 'menu',
@@ -1717,6 +1717,7 @@ const ChessAI = (() => {
       if (hangingAt(st, i, s) !== null) d.hanging.push(i);
     }
     if (!d.check) d.mateThreat = !!mateIn1(Object.assign({}, st, { turn: o, ep: -1 }));
+    if (d.mateThreat) alternatives(); // 提前算好：挡不住时横幅换个说法
     d.canMate = mateIn1(st);
     let best = null;
     for (const m of C.legalMoves(st)) {
@@ -1729,46 +1730,71 @@ const ChessAI = (() => {
     d.key = [d.check, d.hanging.join(','), d.mateThreat].join('|');
   }
 
+  // 走这一步会怎样
+  function moveInfo(st, m) {
+    const s = st.turn;
+    const ns = C.applyMove(st, m);
+    const replies = C.legalMoves(ns);
+    const win = !replies.length && C.inCheck(ns);
+    const stalemate = !replies.length && !win;
+    const eater = win || stalemate ? null : hangingAt(ns, m.to, s);
+    let allowsMate = false;
+    if (!win && !stalemate) {
+      for (const r of replies) {
+        const nns = C.applyMove(ns, r);
+        if (C.inCheck(nns) && !C.legalMoves(nns).length) { allowsMate = true; break; }
+      }
+    }
+    const danger = eater !== null;
+    return {
+      move: m,
+      to: m.to,
+      capture: !!m.capture,
+      castle: m.castle,
+      promo: m.promo,
+      win,
+      stalemate,
+      danger,
+      allowsMate,
+      loses: danger && (m.capture ? valueOf(m.capture) : 0) < valueOf(st.board[m.from]),
+      eater: eater !== null ? ns.board[eater] : 0,
+    };
+  }
+
+  const legalChoices = (st) => C.legalMoves(st).filter((m) => !m.promo || m.promo === C.Q); // 升变默认变皇后
+
+  // 需要“再想想”：会被一步将死（前提是有别的走法能避免）、会逼和、白白丢子
+  function needConfirm(x, alt) {
+    return !x.win && ((x.allowsMate && alt.mateSavable) || x.stalemate || x.loses);
+  }
+
+  // 看看这一回合有没有“更好的走法”；都一样糟时就不问了（问了也没用）
+  function alternatives() {
+    const d = S.danger;
+    if (d.alt) return d.alt;
+    const st = S.state;
+    const infos = [];
+    let alt = null;
+    for (const m of legalChoices(st)) {
+      const x = moveInfo(st, m);
+      if (x.win || (!x.allowsMate && !x.stalemate && !x.loses)) { alt = { mateSavable: true, askable: true }; break; }
+      infos.push(x);
+    }
+    if (!alt) {
+      const mateSavable = infos.some((x) => !x.allowsMate);
+      alt = { mateSavable, askable: infos.some((x) => !needConfirm(x, { mateSavable })) };
+    }
+    d.alt = alt;
+    return alt;
+  }
+
   // 选中棋子后，每个目的地走过去会怎样
   function destsFrom(i) {
-    const st = S.state, s = st.turn, o = 3 - s;
-    const byTo = new Map();
-    for (const m of C.legalMoves(st)) {
-      if (m.from !== i) continue;
-      if (m.promo && m.promo !== C.Q) continue; // 升变默认变皇后
-      byTo.set(m.to, m);
-    }
-    const out = [];
-    for (const m of byTo.values()) {
-      const ns = C.applyMove(st, m);
-      const replies = C.legalMoves(ns);
-      const win = !replies.length && C.inCheck(ns);
-      const stalemate = !replies.length && !win;
-      const eater = win || stalemate ? null : hangingAt(ns, m.to, s);
-      let allowsMate = false;
-      if (!win && !stalemate) {
-        for (const r of replies) {
-          const nns = C.applyMove(ns, r);
-          if (C.inCheck(nns) && !C.legalMoves(nns).length) { allowsMate = true; break; }
-        }
-      }
-      const capV = m.capture ? valueOf(m.capture) : 0;
-      const myV = valueOf(st.board[m.from]);
-      const danger = eater !== null;
-      out.push({
-        move: m,
-        to: m.to,
-        capture: !!m.capture,
-        castle: m.castle,
-        promo: m.promo,
-        win,
-        stalemate,
-        danger,
-        allowsMate,
-        eater: eater !== null ? ns.board[eater] : 0,
-        confirm: !win && (allowsMate || stalemate || (danger && capV < myV)),
-      });
-    }
+    const st = S.state;
+    const out = legalChoices(st).filter((m) => m.from === i).map((m) => moveInfo(st, m));
+    const raw = out.some((x) => !x.win && (x.allowsMate || x.stalemate || x.loses));
+    const alt = raw ? alternatives() : { mateSavable: true, askable: true };
+    out.forEach((x) => { x.confirm = alt.askable && needConfirm(x, alt); });
     return out;
   }
 
@@ -2705,7 +2731,7 @@ const ChessAI = (() => {
       } else if (d.mateThreat) {
         cls = 'red';
         main = ['⚠️ 小心！', `${oppName(p)}下一步能将死你`];
-        small = '想想怎么保护国王';
+        small = d.alt && !d.alt.mateSavable ? '这次挡不住了，下次早点保护国王' : '想想怎么保护国王';
       } else if (d.hanging.length) {
         cls = 'red';
         const t = typeOf(board()[d.hanging[0]]);
