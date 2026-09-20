@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v5';
+const CACHE = 'kids-games-v6';
 const ASSETS = [
   './kids.html',
   './tiaoqi.html',
@@ -26,6 +26,28 @@ const ASSETS = [
   './icons/huijia-180.png',
   './icons/huijia-192.png',
   './icons/huijia-512.png',
+  './icons/emoji/1f3e0.png',
+  './icons/emoji/1f406.png',
+  './icons/emoji/1f418.png',
+  './icons/emoji/1f423.png',
+  './icons/emoji/1f427.png',
+  './icons/emoji/1f428.png',
+  './icons/emoji/1f42d.png',
+  './icons/emoji/1f42f.png',
+  './icons/emoji/1f430.png',
+  './icons/emoji/1f431.png',
+  './icons/emoji/1f436.png',
+  './icons/emoji/1f437.png',
+  './icons/emoji/1f438.png',
+  './icons/emoji/1f43a.png',
+  './icons/emoji/1f43b.png',
+  './icons/emoji/1f43c.png',
+  './icons/emoji/1f981.png',
+  './icons/emoji/1f984.png',
+  './icons/emoji/1f98a.png',
+  './icons/emoji/1f998.png',
+  './icons/emoji/1f9d1.png',
+  './icons/emoji/2b50.png',
 ];
 
 self.addEventListener('install', (event) => {

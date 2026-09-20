@@ -763,6 +763,10 @@
     .chip:hover { border-color: #f5c9d9; }
   }
 
+  /* 备用动物图片（设备画不出 emoji 时） */
+  .emo-img { display: inline-block; width: 1.08em; height: 1.08em; vertical-align: -0.16em; object-fit: contain; pointer-events: none; }
+  .chain .ch .emo-img, .pcard .av .emo-img { vertical-align: middle; }
+
   [hidden] { display: none !important; }
   .test-mode *, .test-mode *::before, .test-mode *::after { animation: none !important; transition: none !important; }
 </style>
@@ -893,6 +897,13 @@
     <div class="set-row">
       <div class="set-name">⚠️ 危险提醒<small>（推荐打开）</small></div>
       <div class="seg" data-opt="danger">
+        <button data-v="1">✅ 开</button>
+        <button data-v="0">⛔ 关</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <div class="set-name">🖼️ 用图片显示动物<small style="color:#8a6a55">看不到动物表情时打开</small></div>
+      <div class="seg" data-opt="picAnimals">
         <button data-v="1">✅ 开</button>
         <button data-v="0">⛔ 关</button>
       </div>
@@ -1376,6 +1387,117 @@ const JungleAI = (() => {
   const TEXT_FONT = 'ui-rounded,"SF Pro Rounded","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif';
   const now = () => performance.now();
   const $ = (id) => document.getElementById(id);
+
+  /* ============== 动物头像：系统 emoji，画不出来就用备用图片 ============== */
+  // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
+  const Emo = (() => {
+    const FILES = {
+      '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
+      '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
+      '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
+      '🐘': '1f418', '🧑': '1f9d1', '🏠': '1f3e0', '⭐': '2b50',
+    };
+    const SPLIT = new RegExp('(' + Object.keys(FILES).join('|') + ')', 'u');
+    const src = (e) => 'icons/emoji/' + FILES[e] + '.png';
+    const imgs = new Map();
+    const forced = /[?&]emoji=img(?:&|$)/.test(location.search) || /MicroMessenger/i.test(navigator.userAgent);
+    const off = /[?&]emoji=text(?:&|$)/.test(location.search);
+    let detected = null;   // 这台设备能不能画 emoji（第一次用到时才测）
+    let loading = false;
+    let ready = null;
+    let gen = 0;
+
+    function canvasEmojiOk() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const x = c.getContext('2d');
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        // 画两个颜色鲜明的 emoji：都画不出彩色，就说明这台设备画不了
+        const check = (ch, test) => {
+          x.clearRect(0, 0, 32, 32);
+          x.font = '24px ' + EMOJI_FONT;
+          x.fillText(ch, 16, 17);
+          const d = x.getImageData(0, 0, 32, 32).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && test(d[i], d[i + 1], d[i + 2])) n++;
+          return n >= 10;
+        };
+        return check('🦊', (r, g, b) => r - b > 60) || check('🐸', (r, g, b) => g - r > 30);
+      } catch (e) {
+        return true; // 读不了像素就当作正常
+      }
+    }
+
+    function useImg() {
+      if (off) return false;
+      if (forced) return true;
+      try { if (Store.data.picAnimals) return true; } catch (e) { /* Store 还没建好 */ }
+      if (detected === null) detected = canvasEmojiOk();
+      return !detected;
+    }
+
+    function preload(cb) {
+      if (cb) ready = cb;
+      if (!useImg() || loading) return;
+      loading = true;
+      let left = Object.keys(FILES).length;
+      for (const e of Object.keys(FILES)) {
+        const im = new Image();
+        im.onload = im.onerror = () => { if (--left === 0 && ready) ready(); };
+        im.src = src(e);
+        imgs.set(e, im);
+      }
+    }
+
+    // 在 canvas 上画：成功返回 true
+    function draw(x, e, cx, cy, size) {
+      if (!useImg()) return false;
+      preload();
+      const im = imgs.get(e);
+      if (!im || !im.complete || !im.naturalWidth) return false;
+      x.drawImage(im, cx - size / 2, cy - size / 2, size, size);
+      return true;
+    }
+
+    // 设置 DOM 文字，动物 emoji 换成图片
+    function text(el, str) {
+      str = String(str);
+      const on = useImg();
+      const key = (on ? 'i' + gen : 't') + str;
+      if (el.dataset.emo === key) return;
+      el.dataset.emo = key;
+      el.dataset.emoRaw = str;
+      if (!on) { el.textContent = str; return; }
+      preload();
+      el.textContent = '';
+      for (const part of str.split(SPLIT)) {
+        if (!part) continue;
+        if (FILES[part]) {
+          const im = document.createElement('img');
+          im.className = 'emo-img';
+          im.src = src(part);
+          im.alt = part;
+          im.draggable = false;
+          el.appendChild(im);
+        } else {
+          el.appendChild(document.createTextNode(part));
+        }
+      }
+    }
+
+    // 设置里切换之后重画
+    function refresh() {
+      gen++;
+      loading = false;
+      preload();
+      // 把已经画过的地方按新模式重画一遍
+      document.querySelectorAll('[data-emo-raw]').forEach((el) => text(el, el.dataset.emoRaw));
+    }
+
+    return { useImg, preload, draw, text, refresh, has: (e) => useImg() && !!FILES[e] };
+  })();
   const rowOf = (i) => Math.floor(i / W);
   const colOf = (i) => i % W;
   const sideOf = J.sideOf;
@@ -1391,6 +1513,7 @@ const JungleAI = (() => {
       streak: { 1: { w: 0, l: 0 }, 2: { w: 0, l: 0 }, 3: { w: 0, l: 0 }, 4: { w: 0, l: 0 }, 5: { w: 0, l: 0 } },
       avatar: '🐼',
       sound: true,
+      picAnimals: false,
       danger: true,
       tutorialSeen: false,
     };
@@ -1406,6 +1529,7 @@ const JungleAI = (() => {
         }
         if (AVATARS.includes(o.avatar)) data.avatar = o.avatar;
         if (typeof o.sound === 'boolean') data.sound = o.sound;
+        if (typeof o.picAnimals === 'boolean') data.picAnimals = o.picAnimals;
         if (typeof o.danger === 'boolean') data.danger = o.danger;
         if (typeof o.tutorialSeen === 'boolean') data.tutorialSeen = o.tutorialSeen;
       }
@@ -1946,7 +2070,11 @@ const JungleAI = (() => {
   function setOption(name, value) {
     const v = !!value && value !== '0';
     if (name === 'danger') Store.data.danger = v;
-    else if (name === 'sound') {
+    else if (name === 'picAnimals') {
+      Store.data.picAnimals = v;
+      Emo.refresh();
+      redrawEmoji();
+    } else if (name === 'sound') {
       Store.data.sound = v;
       if (v) Sound.unlock();
     } else return;
@@ -2000,6 +2128,7 @@ const JungleAI = (() => {
       result: S.result ? Object.assign({}, S.result) : null,
       overlay: ['tutOv', 'resultOv', 'setOv'].filter((id) => $(id).classList.contains('show')),
       layout: $('game').classList.contains('land') ? 'landscape' : 'portrait',
+      emojiImages: Emo.useImg(),
     };
   }
 
@@ -2088,10 +2217,12 @@ const JungleAI = (() => {
 
   function emojiAt(x, e, px, py, size, alpha) {
     x.globalAlpha = alpha === undefined ? 1 : alpha;
-    x.font = size + 'px ' + EMOJI_FONT;
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
-    x.fillText(e, px, py + size * 0.04);
+    if (!Emo.draw(x, e, px, py, size * 1.15)) {
+      x.font = size + 'px ' + EMOJI_FONT;
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.fillText(e, px, py + size * 0.04);
+    }
     x.globalAlpha = 1;
   }
 
@@ -2177,7 +2308,8 @@ const JungleAI = (() => {
 
   // 棋子贴图
   function sprite(v, diam, dpr, trapped) {
-    const key = v + '|' + diam.toFixed(2) + '|' + dpr + '|' + (trapped ? 1 : 0);
+    const em = animalOf(v).e;
+    const key = v + '|' + diam.toFixed(2) + '|' + dpr + '|' + (trapped ? 1 : 0) + '|' + (Emo.has(em) ? 'img' : 'txt');
     let s = spriteCache.get(key);
     if (s) return s;
     const pad = Math.ceil(diam * 0.18);
@@ -2209,7 +2341,9 @@ const JungleAI = (() => {
     x.lineWidth = lw;
     x.strokeStyle = border;
     x.stroke();
-    emojiAt(x, animalOf(v).e, cx, cy + diam * 0.02, diam * 0.6);
+    let pending = false;
+    if (Emo.has(em)) pending = !Emo.draw(x, em, cx, cy + diam * 0.02, diam * 0.7);
+    else emojiAt(x, em, cx, cy + diam * 0.02, diam * 0.6);
     // 大小数字（掉进对方陷阱时变成 0）
     const br = R * 0.36;
     const bx = cx + R * 0.72, by = cy - R * 0.72;
@@ -2226,7 +2360,7 @@ const JungleAI = (() => {
     x.textBaseline = 'middle';
     x.fillText(trapped ? '0' : String(rankOf(v)), bx, by + br * 0.06);
     s = { cv, css };
-    spriteCache.set(key, s);
+    if (!pending) spriteCache.set(key, s); // 图片还没加载好就先不缓存
     return s;
   }
 
@@ -2486,6 +2620,25 @@ const JungleAI = (() => {
   }
 
   /* ============== 游戏页 DOM 刷新 ============== */
+  function emoDiv(cls, text) {
+    const e = mk('div', cls);
+    Emo.text(e, text);
+    return e;
+  }
+
+  // 换成图片 / 图片加载好之后，把用到动物的地方重画一遍
+  function redrawEmoji() {
+    spriteCache.clear();
+    boardCache = null;
+    tutBuilt = false;
+    chainKey = '';
+    bannerKey = '';
+    document.querySelectorAll('.title .emo').forEach((el) => { if (el.dataset.raw) Emo.text(el, el.dataset.raw); });
+    if (S.screen === 'game') { layout(); renderGame(); }
+    renderMenu();
+    if ($('tutOv').classList.contains('show')) openTutorial();
+  }
+
   function mk(tag, cls, text) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -2505,13 +2658,13 @@ const JungleAI = (() => {
 
   function renderPlayers() {
     for (const p of [1, 2]) {
-      $('av' + p).textContent = avatarOf(p);
+      Emo.text($('av' + p), avatarOf(p));
       $('nm' + p).textContent = nameOf(p);
       // 还剩的动物
       const zoo = $('zoo' + p);
       if (zoo.children.length !== 8) {
         zoo.textContent = '';
-        for (let k = 8; k >= 1; k--) zoo.appendChild(mk('span', '', ANIMALS[k].e));
+        for (let k = 8; k >= 1; k--) { const sp = mk('span'); Emo.text(sp, ANIMALS[k].e); zoo.appendChild(sp); }
       }
       const alive = new Set();
       for (const val of S.board) if (val && sideOf(val) === p) alive.add(rankOf(val));
@@ -2549,8 +2702,7 @@ const JungleAI = (() => {
     } else {
       txt = `轮到 ${avatarOf(S.current)} 啦！`;
     }
-    const el = $('status');
-    if (el.textContent !== txt) el.textContent = txt;
+    Emo.text($('status'), txt);
   }
 
   // 谁能吃谁：选中动物时，高亮它能吃的
@@ -2564,7 +2716,8 @@ const JungleAI = (() => {
     el.textContent = '';
     const me = rankOf(selV);
     for (let k = 8; k >= 1; k--) {
-      const ch = mk('div', 'ch', ANIMALS[k].e);
+      const ch = mk('div', 'ch');
+      Emo.text(ch, ANIMALS[k].e);
       ch.appendChild(mk('i', '', String(k)));
       if (me) {
         const eats = (me === 1 && k === 8) || (me >= k && !(me === 8 && k === 1));
@@ -2636,9 +2789,9 @@ const JungleAI = (() => {
     el.className = 'banner ' + cls;
     el.textContent = '';
     const m = mk('span', 'b-main');
-    main.forEach((part) => m.appendChild(mk('span', '', part)));
+    main.forEach((part) => { const s = mk('span', ''); Emo.text(s, part); m.appendChild(s); });
     el.appendChild(m);
-    if (small) el.appendChild(mk('span', 'b-small', small));
+    if (small) { const s = mk('span', 'b-small'); Emo.text(s, small); el.appendChild(s); }
     el.dataset.kind = cls;
   }
 
@@ -2675,7 +2828,9 @@ const JungleAI = (() => {
       b.dataset.level = l;
       b.style.setProperty('--bg', L.bg);
       b.style.setProperty('--shade', L.shade);
-      b.appendChild(mk('div', 'c-emo', L.emoji));
+      const ce = mk('div', 'c-emo');
+      Emo.text(ce, L.emoji);
+      b.appendChild(ce);
       b.appendChild(mk('div', 'c-name', L.name));
       b.appendChild(mk('div', 'c-tag', L.tag));
       const paws = mk('div', 'c-paws');
@@ -2697,7 +2852,8 @@ const JungleAI = (() => {
 
     const ac = $('avatarChips');
     AVATARS.forEach((a) => {
-      const b = mk('button', 'chip emo-chip', a);
+      const b = mk('button', 'chip emo-chip');
+      Emo.text(b, a);
       b.dataset.avatar = a;
       b.setAttribute('aria-label', a);
       b.addEventListener('click', () => {
@@ -2710,7 +2866,9 @@ const JungleAI = (() => {
 
     const mc = $('menuChain');
     for (let k = 8; k >= 1; k--) {
-      mc.appendChild(mk('span', '', ANIMALS[k].e));
+      const sp = mk('span');
+      Emo.text(sp, ANIMALS[k].e);
+      mc.appendChild(sp);
       if (k > 1) mc.appendChild(mk('b', '', '›'));
     }
     mc.appendChild(mk('small', '', '🐭 还能吃 🐘'));
@@ -2732,7 +2890,7 @@ const JungleAI = (() => {
       b.querySelector('.c-wins').textContent = '⭐×' + Store.data.wins[b.dataset.level];
     });
     const vs = document.querySelector('#cards .c-vs');
-    if (vs) vs.textContent = `${Store.data.avatar} 🆚 🧑`;
+    if (vs) Emo.text(vs, `${Store.data.avatar} 🆚 🧑`);
     document.querySelectorAll('#avatarChips .chip').forEach((b) => b.classList.toggle('on', b.dataset.avatar === Store.data.avatar));
     $('btnSound').textContent = Store.data.sound ? '🔊 有声音' : '🔇 没声音';
   }
@@ -2781,7 +2939,7 @@ const JungleAI = (() => {
         dot.style.width = cp * 0.3 + 'px';
         G.put(dot, r, c);
       });
-      const piece = G.put(mk('div', 'dp', '🐶'), 1, 1);
+      const piece = G.put(emoDiv('dp', '🐶'), 1, 1);
       const [x0, y0] = G.at(1, 1);
       const [x1, y1] = G.at(0, 1);
       kf.push(`@keyframes demoStep { 0%, 35% { left: ${x0}px; top: ${y0}px; } 50%, 85% { left: ${x1}px; top: ${y1}px; } 100% { left: ${x0}px; top: ${y0}px; } }`);
@@ -2798,7 +2956,9 @@ const JungleAI = (() => {
       const row = mk('div', 'eat-card');
       const line = mk('div', 'eat-row');
       for (let k = 8; k >= 1; k--) {
-        line.appendChild(mk('span', 'big', ANIMALS[k].e));
+        const sp = mk('span', 'big');
+        Emo.text(sp, ANIMALS[k].e);
+        line.appendChild(sp);
         if (k > 1) line.appendChild(mk('b', '', '›'));
       }
       row.appendChild(line);
@@ -2818,12 +2978,12 @@ const JungleAI = (() => {
       const spec = {};
       for (const r of [1, 2]) for (const c of [1, 2]) spec[`${r},${c}`] = { t: 'water' };
       const G = demoGrid(4, 4, cp, spec);
-      const lion = G.put(mk('div', 'dp', '🦁'), 3, 1);
+      const lion = G.put(emoDiv('dp', '🦁'), 3, 1);
       const [x0, y0] = G.at(3, 1);
       const [x1, y1] = G.at(0, 1);
       kf.push(`@keyframes demoLeap { 0%, 25% { left: ${x0}px; top: ${y0}px; } 50% { left: ${x0}px; top: ${(y0 + y1) / 2 - 30}px; } 70%, 92% { left: ${x1}px; top: ${y1}px; } 100% { left: ${x0}px; top: ${y0}px; } }`);
       lion.style.animation = 'demoLeap 2.8s ease-in-out infinite';
-      const rat = G.put(mk('div', 'dp', '🐭'), 2, 2);
+      const rat = G.put(emoDiv('dp', '🐭'), 2, 2);
       const [rx0, ry0] = G.at(3, 2);
       const [rx1, ry1] = G.at(1, 2);
       kf.push(`@keyframes demoSwim { 0%, 20% { left: ${rx0}px; top: ${ry0}px; } 60%, 90% { left: ${rx1}px; top: ${ry1}px; } 100% { left: ${rx0}px; top: ${ry0}px; } }`);
@@ -2907,12 +3067,12 @@ const JungleAI = (() => {
       title = `${avatarOf(S.winner)} 赢啦！`;
       sub = `${how}，一起玩真开心！`;
     }
-    $('rEmo').textContent = emo;
-    $('rTitle').textContent = title;
-    $('rSub').textContent = sub;
+    Emo.text($('rEmo'), emo);
+    Emo.text($('rTitle'), title);
+    Emo.text($('rSub'), sub);
     const e = $('rEat');
     e.hidden = S.mode !== 'ai' || !r.eaten;
-    e.textContent = `😋 这局你吃掉了 ${r.eaten} 只动物`;
+    Emo.text(e, `😋 这局你吃掉了 ${r.eaten} 只动物`);
     const star = $('rStar');
     star.hidden = !r.star;
     if (r.star) {
@@ -2925,7 +3085,7 @@ const JungleAI = (() => {
     const sug = $('rSuggest');
     if (r.suggest) {
       const T = LEVELS[r.suggest];
-      sug.textContent = r.suggest < S.level ? `换 ${T.emoji} ${T.name} 试试` : `挑战 ${T.emoji} ${T.name}！`;
+      Emo.text(sug, r.suggest < S.level ? `换 ${T.emoji} ${T.name} 试试` : `挑战 ${T.emoji} ${T.name}！`);
       sug.dataset.level = r.suggest;
       sug.hidden = false;
     } else {
@@ -3126,6 +3286,8 @@ const JungleAI = (() => {
   function init() {
     canvas = $('board');
     ctx = canvas.getContext('2d');
+    document.querySelectorAll('.title .emo').forEach((el) => { el.dataset.raw = el.dataset.raw || el.textContent; Emo.text(el, el.dataset.raw); });
+    Emo.preload(redrawEmoji);
     if (INSTANT) document.documentElement.classList.add('test-mode');
     buildMenu();
     renderMenu();

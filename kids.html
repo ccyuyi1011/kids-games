@@ -698,6 +698,10 @@
   .confirm-box { font-size: 22px; font-weight: 900; color: #c0404f; }
   .confirm-box .sheet-btns { margin-top: 10px; }
   /* ============== 其他 ============== */
+  /* 备用动物图片（画不出 emoji 的环境，比如微信里） */
+  .emo-img { display: inline-block; width: 1.08em; height: 1.08em; vertical-align: -0.16em; object-fit: contain; pointer-events: none; }
+  .ms .emo-img, .pcard .av .emo-img { vertical-align: middle; }
+
   [hidden] { display: none !important; }
   /* 测试模式：动画立即完成 */
   .test-mode *, .test-mode *::before, .test-mode *::after { animation: none !important; transition: none !important; }
@@ -817,6 +821,13 @@
     <div class="set-row">
       <div class="set-name">⚠️ 危险提醒<small>（推荐打开）</small></div>
       <div class="seg" data-opt="danger">
+        <button data-v="1">✅ 开</button>
+        <button data-v="0">⛔ 关</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <div class="set-name">🖼️ 用图片显示动物<small style="color:#8a6a55">看不到动物表情时打开</small></div>
+      <div class="seg" data-opt="picAnimals">
         <button data-v="1">✅ 开</button>
         <button data-v="0">⛔ 关</button>
       </div>
@@ -1456,6 +1467,117 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
   const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
   const now = () => performance.now();
 
+  /* ============== 动物头像：系统 emoji，画不出来就用备用图片 ============== */
+  // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
+  const Emo = (() => {
+    const FILES = {
+      '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
+      '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
+      '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
+      '🐘': '1f418', '🧑': '1f9d1', '🏠': '1f3e0', '⭐': '2b50',
+    };
+    const SPLIT = new RegExp('(' + Object.keys(FILES).join('|') + ')', 'u');
+    const src = (e) => 'icons/emoji/' + FILES[e] + '.png';
+    const imgs = new Map();
+    const forced = /[?&]emoji=img(?:&|$)/.test(location.search) || /MicroMessenger/i.test(navigator.userAgent);
+    const off = /[?&]emoji=text(?:&|$)/.test(location.search);
+    let detected = null;   // 这台设备能不能画 emoji（第一次用到时才测）
+    let loading = false;
+    let ready = null;
+    let gen = 0;
+
+    function canvasEmojiOk() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const x = c.getContext('2d');
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        // 画两个颜色鲜明的 emoji：都画不出彩色，就说明这台设备画不了
+        const check = (ch, test) => {
+          x.clearRect(0, 0, 32, 32);
+          x.font = '24px ' + EMOJI_FONT;
+          x.fillText(ch, 16, 17);
+          const d = x.getImageData(0, 0, 32, 32).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && test(d[i], d[i + 1], d[i + 2])) n++;
+          return n >= 10;
+        };
+        return check('🦊', (r, g, b) => r - b > 60) || check('🐸', (r, g, b) => g - r > 30);
+      } catch (e) {
+        return true; // 读不了像素就当作正常
+      }
+    }
+
+    function useImg() {
+      if (off) return false;
+      if (forced) return true;
+      try { if (Store.data.picAnimals) return true; } catch (e) { /* Store 还没建好 */ }
+      if (detected === null) detected = canvasEmojiOk();
+      return !detected;
+    }
+
+    function preload(cb) {
+      if (cb) ready = cb;
+      if (!useImg() || loading) return;
+      loading = true;
+      let left = Object.keys(FILES).length;
+      for (const e of Object.keys(FILES)) {
+        const im = new Image();
+        im.onload = im.onerror = () => { if (--left === 0 && ready) ready(); };
+        im.src = src(e);
+        imgs.set(e, im);
+      }
+    }
+
+    // 在 canvas 上画：成功返回 true
+    function draw(x, e, cx, cy, size) {
+      if (!useImg()) return false;
+      preload();
+      const im = imgs.get(e);
+      if (!im || !im.complete || !im.naturalWidth) return false;
+      x.drawImage(im, cx - size / 2, cy - size / 2, size, size);
+      return true;
+    }
+
+    // 设置 DOM 文字，动物 emoji 换成图片
+    function text(el, str) {
+      str = String(str);
+      const on = useImg();
+      const key = (on ? 'i' + gen : 't') + str;
+      if (el.dataset.emo === key) return;
+      el.dataset.emo = key;
+      el.dataset.emoRaw = str;
+      if (!on) { el.textContent = str; return; }
+      preload();
+      el.textContent = '';
+      for (const part of str.split(SPLIT)) {
+        if (!part) continue;
+        if (FILES[part]) {
+          const im = document.createElement('img');
+          im.className = 'emo-img';
+          im.src = src(part);
+          im.alt = part;
+          im.draggable = false;
+          el.appendChild(im);
+        } else {
+          el.appendChild(document.createTextNode(part));
+        }
+      }
+    }
+
+    // 设置里切换之后重画
+    function refresh() {
+      gen++;
+      loading = false;
+      preload();
+      // 把已经画过的地方按新模式重画一遍
+      document.querySelectorAll('[data-emo-raw]').forEach((el) => text(el, el.dataset.emoRaw));
+    }
+
+    return { useImg, preload, draw, text, refresh, has: (e) => useImg() && !!FILES[e] };
+  })();
+
   /* ============== 本地存储（全部 try/catch） ============== */
   const Store = (() => {
     const KEY = 'kidsGomoku.v1';
@@ -1466,6 +1588,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       avatar: '🐼',
       size: 11,
       sound: true,
+      picAnimals: false,
       danger: true,
       tutorialSeen: false,
     };
@@ -1482,6 +1605,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
         if (AVATARS.includes(o.avatar)) data.avatar = o.avatar;
         if (SIZES.includes(o.size)) data.size = o.size;
         if (typeof o.sound === 'boolean') data.sound = o.sound;
+        if (typeof o.picAnimals === 'boolean') data.picAnimals = o.picAnimals;
         if (typeof o.danger === 'boolean') data.danger = o.danger;
         if (typeof o.tutorialSeen === 'boolean') data.tutorialSeen = o.tutorialSeen;
       }
@@ -2000,7 +2124,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
   function setOption(name, value) {
     const v = !!value && value !== '0';
     if (name === 'danger') Store.data.danger = v;
-    else if (name === 'sound') {
+    else if (name === 'picAnimals') {
+      Store.data.picAnimals = v;
+      Emo.refresh();
+      spriteCache.clear();
+      redrawEmoji();
+    } else if (name === 'sound') {
       Store.data.sound = v;
       if (v) Sound.unlock();
     } else return;
@@ -2044,6 +2173,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       session: Object.assign({}, S.session),
       hover: S.hover ? S.hover.slice() : null,
       layout: $('game').classList.contains('land') ? 'landscape' : 'portrait',
+      emojiImages: Emo.useImg(),
       geom: boardGeom(),
     };
   }
@@ -2195,7 +2325,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
 
   // 棋子贴图缓存：彩色底 + 描边 + 头像 emoji
   function sprite(p, emoji, d) {
-    const key = p + '|' + emoji + '|' + d.toFixed(2) + '|' + G.dpr;
+    const key = p + '|' + emoji + '|' + d.toFixed(2) + '|' + G.dpr + '|' + (Emo.has(emoji) ? 'img' : 'txt');
     let s = spriteCache.get(key);
     if (s) return s;
     const pad = Math.ceil(d * 0.14);
@@ -2232,14 +2362,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
     x.strokeStyle = border;
     x.stroke();
     // 头像 emoji（约为直径的 72%）
-    let fs = d * 0.6;
-    x.font = fs + 'px ' + EMOJI_FONT;
-    const mw = x.measureText(emoji).width;
-    if (mw > 0) fs = Math.min(d * 0.8, (fs * d * 0.72) / mw);
-    x.font = fs + 'px ' + EMOJI_FONT;
-    x.textAlign = 'center';
-    x.textBaseline = 'middle';
-    x.fillText(emoji, cx, cy + d * 0.035);
+    if (!Emo.draw(x, emoji, cx, cy, d * 0.7)) {
+      if (Emo.has(emoji)) return { cv, css }; // 图片还没加载好：先不缓存，加载完再画
+      let fs = d * 0.6;
+      x.font = fs + 'px ' + EMOJI_FONT;
+      const mw = x.measureText(emoji).width;
+      if (mw > 0) fs = Math.min(d * 0.8, (fs * d * 0.72) / mw);
+      x.font = fs + 'px ' + EMOJI_FONT;
+      x.textAlign = 'center';
+      x.textBaseline = 'middle';
+      x.fillText(emoji, cx, cy + d * 0.035);
+    }
     s = { cv, css };
     spriteCache.set(key, s);
     return s;
@@ -2384,10 +2517,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
     ctx.lineWidth = Math.max(2.5, G.cell * 0.07);
     ctx.strokeStyle = '#ffbf00';
     ctx.stroke();
-    ctx.font = G.cell * 0.4 + 'px ' + EMOJI_FONT;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✨', x + R * 0.85, y - R * 0.85);
+    if (Emo.useImg()) {
+      sparkle(x + R * 0.85, y - R * 0.85, G.cell * 0.2);
+    } else {
+      ctx.font = G.cell * 0.4 + 'px ' + EMOJI_FONT;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✨', x + R * 0.85, y - R * 0.85);
+    }
+  }
+
+  // 金色四角星（备用图片模式下代替 ✨ emoji）
+  function sparkle(cx, cy, R) {
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const r = k % 2 ? R * 0.32 : R;
+      const a = -Math.PI / 2 + (k * Math.PI) / 4;
+      ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffc21a';
+    ctx.fill();
   }
 
   function drawOrangeRings(t) {
@@ -2528,8 +2678,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
   }
 
   function renderPlayers() {
-    $('av1').textContent = avatarOf(1);
-    $('av2').textContent = avatarOf(2);
+    Emo.text($('av1'), avatarOf(1));
+    Emo.text($('av2'), avatarOf(2));
     $('nm1').textContent = nameOf(1);
     $('nm2').textContent = nameOf(2);
     // 名字下面的小字：人机显示难度爪印，家人模式显示“一起玩”
@@ -2559,8 +2709,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
     } else {
       txt = `轮到 ${avatarOf(S.current)} 啦！`;
     }
-    const el = $('status');
-    if (el.textContent !== txt) el.textContent = txt;
+    Emo.text($('status'), txt);
   }
 
   let bannerKey = '';
@@ -2601,9 +2750,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
     el.className = 'banner ' + cls;
     el.textContent = '';
     const m = mk('span', 'b-main');
-    main.forEach((part) => m.appendChild(mk('span', '', part)));
+    main.forEach((part) => { const s = mk('span', ''); Emo.text(s, part); m.appendChild(s); });
     el.appendChild(m);
-    if (small) el.appendChild(mk('span', 'b-small', small));
+    if (small) { const s = mk('span', 'b-small'); Emo.text(s, small); el.appendChild(s); }
     el.dataset.kind = cls;
   }
 
@@ -2640,7 +2789,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       b.dataset.level = l;
       b.style.setProperty('--bg', L.bg);
       b.style.setProperty('--shade', L.shade);
-      b.appendChild(mk('div', 'c-emo', L.emoji));
+      const ce = mk('div', 'c-emo');
+      Emo.text(ce, L.emoji);
+      b.appendChild(ce);
       b.appendChild(mk('div', 'c-name', L.name));
       b.appendChild(mk('div', 'c-tag', L.tag));
       const paws = mk('div', 'c-paws');
@@ -2662,7 +2813,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
 
     const ac = $('avatarChips');
     AVATARS.forEach((a) => {
-      const b = mk('button', 'chip emo-chip', a);
+      const b = mk('button', 'chip emo-chip');
+      Emo.text(b, a);
       b.dataset.avatar = a;
       b.setAttribute('aria-label', a);
       b.addEventListener('click', () => {
@@ -2702,7 +2854,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       b.querySelector('.c-wins').textContent = '⭐×' + Store.data.wins[b.dataset.level];
     });
     const vs = document.querySelector('#cards .c-vs');
-    if (vs) vs.textContent = `${Store.data.avatar} 🆚 🐯`;
+    if (vs) Emo.text(vs, `${Store.data.avatar} 🆚 🐯`);
     document.querySelectorAll('#avatarChips .chip').forEach((b) => b.classList.toggle('on', b.dataset.avatar === Store.data.avatar));
     document.querySelectorAll('#sizeChips .chip').forEach((b) => b.classList.toggle('on', Number(b.dataset.size) === Store.data.size));
     $('btnSound').textContent = Store.data.sound ? '🔊 有声音' : '🔇 没声音';
@@ -2724,7 +2876,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
           if (it.t === 'ring') cellEl.appendChild(mk('div', 'mring'));
           else {
             const cls = 'ms' + (it.t === 'b' ? ' b' : '') + (it.t === 'ghost' ? ' ghost' : '') + (it.win ? ' win' : '');
-            cellEl.appendChild(mk('div', cls, it.t === 'b' ? '🐻' : S.avatar || Store.data.avatar));
+            const st = mk('div', cls);
+            Emo.text(st, it.t === 'b' ? '🐻' : S.avatar || Store.data.avatar);
+            cellEl.appendChild(st);
           }
         }
         wrap.appendChild(cellEl);
@@ -2762,7 +2916,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       { r: 2, c: 2, t: 'p' }, { r: 1, c: 2, t: 'b' }, { r: 2, c: 1, t: 'p' }, { r: 3, c: 3, t: 'b' }, { r: 2, c: 3, t: 'ghost' },
     ], [], [2, 3]));
     const row = mk('div', 'turn-row');
-    row.append(S.avatar, mk('b', '', '➜'), '🐻', mk('b', '', '➜'), S.avatar);
+    const face = (e) => { const s = mk('span'); Emo.text(s, e); return s; };
+    row.append(face(S.avatar), mk('b', '', '➜'), face('🐻'), mk('b', '', '➜'), face(S.avatar));
     a0.appendChild(row);
 
     const a1 = $('tutArt1');
@@ -2814,9 +2969,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
       title = `${avatarOf(S.winner)} 赢啦！`;
       sub = '一起玩真开心！';
     }
-    $('rEmo').textContent = emo;
-    $('rTitle').textContent = title;
-    $('rSub').textContent = sub;
+    Emo.text($('rEmo'), emo);
+    Emo.text($('rTitle'), title);
+    Emo.text($('rSub'), sub);
     const star = $('rStar');
     star.hidden = !r.star;
     if (r.star) {
@@ -2828,7 +2983,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
     const sug = $('rSuggest');
     if (r.suggest) {
       const T = LEVELS[r.suggest];
-      sug.textContent = r.suggest < S.level ? `换 ${T.emoji} ${T.name} 试试` : `挑战 ${T.emoji} ${T.name}！`;
+      Emo.text(sug, r.suggest < S.level ? `换 ${T.emoji} ${T.name} 试试` : `挑战 ${T.emoji} ${T.name}！`);
       sug.dataset.level = r.suggest;
       sug.hidden = false;
     } else {
@@ -3014,9 +3169,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = KidsAI;
   }
 
   /* ============== 初始化 ============== */
+  // 换成图片 / 图片加载好之后，把用到动物的地方重画一遍
+  function redrawEmoji() {
+    spriteCache.clear();
+    document.querySelectorAll('.title .emo').forEach((el) => { if (el.dataset.raw) Emo.text(el, el.dataset.raw); });
+    if (S.screen === 'game') renderGame();
+    renderMenu();
+    if ($('tutOv').classList.contains('show')) openTutorial();
+  }
+
   function init() {
     canvas = $('board');
     ctx = canvas.getContext('2d');
+    document.querySelectorAll('.title .emo').forEach((el) => { el.dataset.raw = el.dataset.raw || el.textContent; Emo.text(el, el.dataset.raw); });
+    Emo.preload(redrawEmoji);
     if (TEST) document.documentElement.classList.add('test-mode');
     buildMenu();
     renderMenu();
