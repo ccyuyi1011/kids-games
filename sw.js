@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v8';
+const CACHE = 'kids-games-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -13,12 +13,14 @@ const ASSETS = [
   './chess.html',
   './huijia.html',
   './fendongxi.html',
+  './fanpai.html',
   './kids.webmanifest',
   './tiaoqi.webmanifest',
   './doushouqi.webmanifest',
   './chess.webmanifest',
   './huijia.webmanifest',
   './fen.webmanifest',
+  './fanpai.webmanifest',
   './icons/wuziqi-180.png',
   './icons/wuziqi-192.png',
   './icons/wuziqi-512.png',
@@ -37,6 +39,9 @@ const ASSETS = [
   './icons/fen-180.png',
   './icons/fen-192.png',
   './icons/fen-512.png',
+  './icons/fanpai-180.png',
+  './icons/fanpai-192.png',
+  './icons/fanpai-512.png',
   './icons/emoji/1f3e0.png',
   './icons/emoji/1f406.png',
   './icons/emoji/1f418.png',

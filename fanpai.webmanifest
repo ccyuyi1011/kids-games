@@ -1,0 +1,16 @@
+{
+  "name": "记忆翻牌",
+  "short_name": "记忆翻牌",
+  "id": "./fanpai.html",
+  "start_url": "./fanpai.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#e9e6ff",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/fanpai-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/fanpai-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
