@@ -471,7 +471,7 @@
   .bar .btn { min-height: 46px; font-size: 18px; padding: 0 14px; }
   .turn { font-size: 22px; font-weight: 900; text-align: center; min-height: 30px; }
 
-  .board { display: grid; gap: 10px; justify-content: center; }
+  .board { --cw: 100px; display: grid; gap: 10px; justify-content: center; }
   .card { position: relative; aspect-ratio: 3 / 4; perspective: 700px; background: none; padding: 0; }
   .card .inner { position: absolute; inset: 0; transition: transform 0.35s; transform-style: preserve-3d; }
   .card.up .inner, .card.done .inner { transform: rotateY(180deg); }
@@ -484,9 +484,9 @@
     font-family: var(--emoji);
     box-shadow: 0 5px 0 rgba(120, 90, 60, 0.25);
   }
-  .card .front { background: linear-gradient(140deg, #b9a7ff, #8f7ae6); color: #fff; font-size: 30px; }
-  .card .back { background: #fffaf0; border: 4px solid #ffd9a8; transform: rotateY(180deg); }
-  .card .back img { width: 68%; height: 68%; object-fit: contain; }
+  .card .front { background: linear-gradient(140deg, #b9a7ff, #8f7ae6); color: #fff; font-size: calc(var(--cw) * 0.34); }
+  .card .back { background: #fffaf0; border: 4px solid #ffd9a8; transform: rotateY(180deg); font-size: calc(var(--cw) * 0.64); }
+  .card .back img { width: 84%; height: 84%; object-fit: contain; }
   .card.done { animation: matched 0.5s ease-out; }
   .card.done .back { border-color: #7fd49b; background: #f0fff4; }
   .card.miss .back { border-color: #ff9aa5; background: #fff0f0; }
@@ -500,7 +500,7 @@
   .demo-row .lbl { font-family: var(--font); font-size: 19px; font-weight: 900; color: #8a6a55; }
 
   .emo-img { display: inline-block; width: 1.08em; height: 1.08em; vertical-align: -0.16em; object-fit: contain; pointer-events: none; }
-  .card .back .emo-img { width: 68%; height: 68%; vertical-align: middle; }
+  .card .back .emo-img { width: 84%; height: 84%; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -922,12 +922,13 @@
     const play = $('play');
     const inner = play.querySelector('.play-inner');
     const availW = Math.min(1000, inner.clientWidth);
-    const other = $('bar').offsetHeight + $('turn').offsetHeight + 30;
+    const other = $('bar').offsetHeight + $('turn').offsetHeight + 46;
     const availH = Math.max(220, play.clientHeight - other);
     const byW = (availW - gap * (cols - 1)) / cols;
     const byH = ((availH - gap * (rows - 1)) / rows) * 3 / 4;
-    const cw = Math.max(58, Math.min(150, byW, byH));
+    const cw = Math.max(58, Math.min(190, byW, byH));
     b.style.width = Math.round(cw * cols + gap * (cols - 1)) + 'px';
+    b.style.setProperty('--cw', Math.round(cw) + 'px');
     b.style.maxWidth = '100%';
   }
   window.addEventListener('resize', sizeBoard);
