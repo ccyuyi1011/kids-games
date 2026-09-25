@@ -71,6 +71,13 @@
   .game .ds { font-size: 17px; font-weight: 800; color: #8f725c; line-height: 1.35; margin-top: 2px; }
   @media (hover: hover) and (pointer: fine) { .game:hover { transform: translateY(-3px); } }
 
+  .sec {
+    font-size: clamp(20px, 2.6vw, 26px);
+    font-weight: 900;
+    color: #7a6045;
+    margin: 6px 0 -6px 6px;
+  }
+  .sec:first-of-type { margin-top: 0; }
   .tip {
     text-align: center;
     font-size: 17px;
@@ -89,34 +96,34 @@
   <div class="head"><h1><span class="emo">🎮</span> 小动物游戏乐园</h1></div>
   <div class="sub">选一个游戏开始玩吧！</div>
 
+  <div class="sec">♟️ 下棋对战</div>
   <div class="games">
     <a class="game" href="kids.html">
-      <img src="icons/wuziqi-192.png" alt="五子棋">
+      <img src="icons/wuziqi-192.png" alt="五子棋乐园">
       <div class="txt"><div class="nm">五子棋乐园</div><div class="ds">连成 5 个就赢</div></div>
     </a>
     <a class="game" href="tiaoqi.html">
-      <img src="icons/tiaoqi-192.png" alt="跳棋">
+      <img src="icons/tiaoqi-192.png" alt="跳棋乐园">
       <div class="txt"><div class="nm">跳棋乐园</div><div class="ds">连跳跳得好远</div></div>
     </a>
     <a class="game" href="doushouqi.html">
-      <img src="icons/doushouqi-192.png" alt="斗兽棋">
+      <img src="icons/doushouqi-192.png" alt="斗兽棋乐园">
       <div class="txt"><div class="nm">斗兽棋乐园</div><div class="ds">大的吃小的，老鼠吃大象</div></div>
     </a>
     <a class="game" href="chess.html">
-      <img src="icons/chess-192.png" alt="国际象棋">
+      <img src="icons/chess-192.png" alt="国际象棋乐园">
       <div class="txt"><div class="nm">国际象棋乐园</div><div class="ds">把对方的国王将死</div></div>
     </a>
-    <a class="game" href="huijia.html">
-      <img src="icons/huijia-192.png" alt="小动物回家">
-      <div class="txt"><div class="nm">小动物回家</div><div class="ds">排积木，让小动物回家</div></div>
+    <a class="game" href="qiang21.html">
+      <img src="icons/qiang21-192.png" alt="抢 21">
+      <div class="txt"><div class="nm">抢 21</div><div class="ds">谁报到 21 谁赢</div></div>
     </a>
+  </div>
+  <div class="sec">🔢 学数学</div>
+  <div class="games">
     <a class="game" href="fendongxi.html">
       <img src="icons/fen-192.png" alt="分东西">
       <div class="txt"><div class="nm">分东西</div><div class="ds">给小动物分得公平</div></div>
-    </a>
-    <a class="game" href="fanpai.html">
-      <img src="icons/fanpai-192.png" alt="记忆翻牌">
-      <div class="txt"><div class="nm">记忆翻牌</div><div class="ds">找出一样的两张</div></div>
     </a>
     <a class="game" href="tianping.html">
       <img src="icons/tianping-192.png" alt="天平称一称">
@@ -126,21 +133,43 @@
       <img src="icons/shuzhou-192.png" alt="青蛙跳数轴">
       <div class="txt"><div class="nm">青蛙跳数轴</div><div class="ds">一格一格跳到荷叶上</div></div>
     </a>
-    <a class="game" href="qiang21.html">
-      <img src="icons/qiang21-192.png" alt="抢21">
-      <div class="txt"><div class="nm">抢 21</div><div class="ds">谁报到 21 谁赢</div></div>
+    <a class="game" href="clock.html">
+      <img src="icons/clock-192.png" alt="几点了">
+      <div class="txt"><div class="nm">几点了</div><div class="ds">学会看钟表</div></div>
+    </a>
+  </div>
+  <div class="sec">🧠 动脑筋</div>
+  <div class="games">
+    <a class="game" href="shudu.html">
+      <img src="icons/shudu-192.png" alt="动物数独">
+      <div class="txt"><div class="nm">动物数独</div><div class="ds">每行每列都不重样</div></div>
     </a>
     <a class="game" href="migong.html">
       <img src="icons/migong-192.png" alt="小动物迷宫">
       <div class="txt"><div class="nm">小动物迷宫</div><div class="ds">找到回家的路</div></div>
     </a>
-    <a class="game" href="shudu.html">
-      <img src="icons/shudu-192.png" alt="动物数独">
-      <div class="txt"><div class="nm">动物数独</div><div class="ds">每行每列都不重样</div></div>
+    <a class="game" href="tuiguo.html">
+      <img src="icons/tuiguo-192.png" alt="推苹果">
+      <div class="txt"><div class="nm">推苹果</div><div class="ds">把苹果推进篮子</div></div>
     </a>
-    <a class="game" href="clock.html">
-      <img src="icons/clock-192.png" alt="几点了">
-      <div class="txt"><div class="nm">几点了</div><div class="ds">学会看钟表</div></div>
+    <a class="game" href="fangzi.html">
+      <img src="icons/fangzi-192.png" alt="谁的房子">
+      <div class="txt"><div class="nm">谁的房子</div><div class="ds">看线索猜谁住哪间</div></div>
+    </a>
+    <a class="game" href="guilv.html">
+      <img src="icons/guilv-192.png" alt="找规律">
+      <div class="txt"><div class="nm">找规律</div><div class="ds">接着排下去</div></div>
+    </a>
+  </div>
+  <div class="sec">🎨 玩一玩</div>
+  <div class="games">
+    <a class="game" href="huijia.html">
+      <img src="icons/huijia-192.png" alt="小动物回家">
+      <div class="txt"><div class="nm">小动物回家</div><div class="ds">排积木，让小动物回家</div></div>
+    </a>
+    <a class="game" href="fanpai.html">
+      <img src="icons/fanpai-192.png" alt="记忆翻牌">
+      <div class="txt"><div class="nm">记忆翻牌</div><div class="ds">找出一样的两张</div></div>
     </a>
   </div>
 

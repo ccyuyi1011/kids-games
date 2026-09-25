@@ -1,0 +1,16 @@
+{
+  "name": "谁的房子",
+  "short_name": "谁的房子",
+  "id": "./fangzi.html",
+  "start_url": "./fangzi.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#eaf6ff",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/fangzi-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/fangzi-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

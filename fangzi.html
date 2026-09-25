@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="谁的房子">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#eaf6ff">
+<link rel="manifest" href="fangzi.webmanifest">
+<link rel="apple-touch-icon" href="icons/fangzi-180.png">
+<link rel="icon" type="image/png" href="icons/fangzi-192.png">
+<title>谁的房子</title>
+<style>
+  /* ============== 基础与配色 ============== */
+  :root {
+    --ink: #5b4331;
+    --ink-soft: #9a7f69;
+    --pink: #ff8fb8;
+    --pink-bg: #ffd6e5;
+    --blue: #6bbfff;
+    --blue-bg: #d4ecff;
+    --gold: #ffc93c;
+    --red: #ff4658;
+    --sheet: #fffdf8;
+    --font: ui-rounded, "SF Pro Rounded", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background: linear-gradient(160deg, #e9f8dd 0%, #fff5e1 50%, #e2f2ff 100%);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(190, 240, 170, 0.55) 0, rgba(190, 240, 170, 0) 28%),
+      radial-gradient(circle at 92% 18%, rgba(255, 230, 150, 0.5) 0, rgba(255, 230, 150, 0) 26%),
+      radial-gradient(circle at 85% 90%, rgba(170, 215, 255, 0.55) 0, rgba(170, 215, 255, 0) 30%),
+      radial-gradient(circle at 12% 88%, rgba(255, 200, 220, 0.45) 0, rgba(255, 200, 220, 0) 26%);
+  }
+
+  button {
+    font-family: inherit;
+    color: inherit;
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .emo { font-family: var(--emoji); }
+
+  #app { position: fixed; inset: 0; }
+
+  .screen { position: absolute; inset: 0; display: none; }
+  .screen.show { display: flex; }
+
+  /* ============== 通用按钮 ============== */
+  .btn {
+    --shade: #e9d2b3;
+    min-height: 56px;
+    padding: 0 20px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 5px 0 var(--shade), 0 9px 18px rgba(150, 100, 60, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: transform 0.08s, box-shadow 0.08s, opacity 0.2s, filter 0.15s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--shade), 0 3px 8px rgba(150, 100, 60, 0.12); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .btn:disabled:active { transform: none; box-shadow: 0 5px 0 var(--shade); }
+  .btn.pink   { background: linear-gradient(#ffb3cf, #ff8fb8); color: #fff; --shade: #e36a97; text-shadow: 0 1px 1px rgba(170, 50, 90, 0.35); }
+  .btn.blue   { background: linear-gradient(#bfe3ff, #8ccfff); color: #2d5a80; --shade: #5fa9e0; }
+  .btn.green  { background: linear-gradient(#c9f2d6, #9fe3b6); color: #2f6b45; --shade: #6fc18d; }
+  .btn.yellow { background: linear-gradient(#fff0a8, #ffd966); color: #7a5300; --shade: #e7b63c; }
+  .btn.purple { background: linear-gradient(#e6d6ff, #c9b0ff); color: #4f3a85; --shade: #a58ae0; }
+  .btn.big { min-height: 64px; font-size: 24px; border-radius: 24px; padding: 0 28px; }
+
+  /* ============== 菜单页 ============== */
+  #menu {
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      calc(20px + env(safe-area-inset-right))
+      calc(20px + env(safe-area-inset-bottom))
+      calc(20px + env(safe-area-inset-left));
+  }
+  .menu-inner {
+    width: 100%;
+    max-width: 1120px;
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .title {
+    font-size: clamp(32px, 5.2vw, 50px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #5d4a2f;
+    text-shadow: 0 3px 0 #fff, 0 6px 14px rgba(120, 200, 110, 0.35);
+    white-space: nowrap;
+  }
+  .title .emo { display: inline-block; animation: roar 2.4s ease-in-out infinite; }
+  .star-total {
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-size: 26px;
+    font-weight: 900;
+    color: #b07a00;
+    box-shadow: 0 5px 0 #f1d58c, 0 8px 16px rgba(180, 130, 40, 0.15);
+    white-space: nowrap;
+  }
+  .star-total.bump { animation: bump 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .subtitle { text-align: center; font-size: clamp(22px, 3vw, 28px); font-weight: 900; color: #6d5a3d; }
+
+  
+  .card {
+    --bg: #fff;
+    --shade: #e9d2b3;
+    position: relative;
+    background: var(--bg);
+    border-radius: 28px;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 6px 0 var(--shade), 0 12px 22px rgba(150, 100, 60, 0.13);
+    transition: transform 0.12s, box-shadow 0.08s;
+    min-width: 0;
+  }
+  .card:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--shade), 0 4px 10px rgba(150, 100, 60, 0.12); }
+  .card .c-emo { font-family: var(--emoji); font-size: clamp(50px, 6.4vw, 70px); line-height: 1.15; animation: sway 3s ease-in-out infinite; }
+  .card:nth-child(2) .c-emo { animation-delay: -0.6s; }
+  .card:nth-child(3) .c-emo { animation-delay: -1.2s; }
+  .card:nth-child(4) .c-emo { animation-delay: -1.8s; }
+  .card:nth-child(5) .c-emo { animation-delay: -2.4s; }
+  .card .c-name { font-size: 24px; font-weight: 900; }
+  .card .c-tag { font-size: 18px; font-weight: 700; color: #8f725c; white-space: nowrap; }
+  .card .c-paws { font-family: var(--emoji); font-size: 15px; letter-spacing: -1px; white-space: nowrap; }
+  .card .c-paws .off { opacity: 0.2; filter: grayscale(1); }
+  .card .c-wins {
+    margin-top: 2px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #a26f00;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    padding: 2px 12px;
+    white-space: nowrap;
+  }
+  .card.family .c-tag { white-space: normal; text-align: center; }
+
+  .opt-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 22px; }
+  .opt-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 10px;
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 26px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 14px rgba(150, 100, 60, 0.08);
+  }
+  .opt-label { font-size: 20px; font-weight: 900; margin-right: 4px; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .chip {
+    min-height: 56px;
+    min-width: 56px;
+    padding: 0 14px;
+    border-radius: 18px;
+    background: #fff;
+    border: 3px solid #f1e4d3;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+    white-space: nowrap;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .chip.emo-chip { font-family: var(--emoji); font-size: 34px; width: 62px; height: 62px; padding: 0; line-height: 1; }
+  .chip.on {
+    border-color: var(--pink);
+    background: #fff0f6;
+    box-shadow: 0 0 0 4px rgba(255, 143, 184, 0.28);
+    transform: scale(1.07);
+  }
+  .menu-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding-bottom: 6px; }
+
+  @keyframes sway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg) translateY(-2px); }
+  }
+  @keyframes roar {
+    0%, 70%, 100% { transform: scale(1) rotate(0); }
+    78% { transform: scale(1.18) rotate(-8deg); }
+    86% { transform: scale(1.12) rotate(6deg); }
+  }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* ============== 弹层通用 ============== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding:
+      calc(16px + env(safe-area-inset-top))
+      calc(16px + env(safe-area-inset-right))
+      calc(16px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+    background: rgba(90, 80, 50, 0.38);
+  }
+  .overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
+  .sheet {
+    position: relative;
+    width: min(640px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--sheet);
+    border-radius: 34px;
+    padding: 26px 24px 24px;
+    text-align: center;
+    border: 4px solid #fff;
+    box-shadow: 0 18px 44px rgba(90, 60, 40, 0.3);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .sheet h2 { font-size: 30px; font-weight: 900; margin-bottom: 14px; }
+  .sheet-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 18px; }
+
+  /* ============== 教程 ============== */
+  .tut-step { display: none; }
+  .tut-step.show { display: block; animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .tut-art {
+    min-height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .tut-text { font-size: 28px; font-weight: 900; line-height: 1.3; }
+  .tut-small { font-size: 21px; font-weight: 800; color: #8a6f52; margin-top: 4px; }
+  .tut-dots { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+  .tut-dots i { width: 14px; height: 14px; border-radius: 50%; background: #e3e8cf; transition: all 0.25s; }
+  .tut-dots i.on { width: 34px; border-radius: 8px; background: #8fd07a; }
+
+  /* ============== 结果卡片 ============== */
+  .result .r-emo { font-family: var(--emoji); font-size: 84px; line-height: 1.1; animation: hop 1.2s ease-in-out infinite; }
+  .result .r-title { font-size: 44px; font-weight: 900; margin-top: 4px; }
+  .result.win .r-title { color: #ff5f99; text-shadow: 0 3px 0 #ffe0ec; }
+  .result .r-sub { font-size: 24px; font-weight: 800; color: #8a6a55; margin-top: 6px; }
+  .result .r-eat { font-size: 22px; font-weight: 900; color: #3f8a55; margin-top: 8px; }
+  .result .r-star {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 40px;
+    font-weight: 900;
+    color: #d99800;
+    text-shadow: 0 3px 0 #fff3c4;
+    animation: starUp 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .result .r-tip {
+    margin: 16px auto 0;
+    max-width: 460px;
+    padding: 12px 16px;
+    border-radius: 20px;
+    background: #fff1f1;
+    border: 3px dashed #ff9aa5;
+    color: #d8404f;
+    font-size: 22px;
+    font-weight: 900;
+  }
+  .result .r-suggest { margin-top: 18px; width: 100%; max-width: 440px; }
+  .result .r-suggest.btn { animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes starUp {
+    0% { transform: translateY(30px) scale(0.3); opacity: 0; }
+    60% { transform: translateY(-8px) scale(1.25); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes nudge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+  #confetti i {
+    position: absolute;
+    top: -40px;
+    display: block;
+    border-radius: 3px;
+    font-style: normal;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--rot)); opacity: 0.9; }
+  }
+
+  /* ============== 设置 ============== */
+  .set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    margin-top: 12px;
+    border-radius: 22px;
+    background: #fff;
+    border: 3px solid #f6e8d6;
+    text-align: left;
+  }
+  .set-name { font-size: 22px; font-weight: 900; }
+  .set-name small { display: block; font-size: 17px; font-weight: 800; color: #d8404f; }
+  .seg { display: flex; gap: 8px; }
+  .seg button {
+    min-height: 56px;
+    min-width: 92px;
+    padding: 0 14px;
+    border-radius: 18px;
+    font-size: 20px;
+    font-weight: 900;
+    background: #f5efe7;
+    color: #a48b77;
+    border: 3px solid transparent;
+  }
+  .seg button.on { background: #e5f8ea; color: #2f7a4b; border-color: #7fd49b; }
+  .seg button.on.off-choice { background: #fff0f0; color: #c0404f; border-color: #ff9aa5; }
+  .parent-zone { margin-top: 18px; padding: 14px; border-radius: 22px; background: #f3f0ff; border: 3px dashed #cbbcf5; }
+  .parent-zone h3 { font-size: 20px; font-weight: 900; color: #5d4a96; margin-bottom: 10px; }
+  .confirm-box { font-size: 22px; font-weight: 900; color: #c0404f; }
+  .confirm-box .sheet-btns { margin-top: 10px; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover:not(:disabled) { filter: brightness(1.04); }
+    .card:hover { transform: translateY(-3px); }
+    .chip:hover { border-color: #f5c9d9; }
+  }
+
+  [hidden] { display: none !important; }
+  .test-mode *, .test-mode *::before, .test-mode *::after { animation: none !important; transition: none !important; }
+  /* 选关 */
+  .chapters { display: flex; flex-direction: column; gap: 14px; }
+  .chapter {
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 26px;
+    padding: 12px 16px 14px;
+    box-shadow: 0 4px 14px rgba(150, 100, 60, 0.08);
+  }
+  .chapter-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chapter-head .ch-name { font-size: 24px; font-weight: 900; }
+  .chapter-head .ch-desc { font-size: 17px; font-weight: 800; color: #9a7f69; }
+  .chapter-head .ch-stars { margin-left: auto; font-size: 18px; font-weight: 900; color: #b07a00; }
+  .levels { display: flex; flex-wrap: wrap; gap: 10px; }
+  .lvl {
+    --shade: #dcc9ad;
+    width: 104px;
+    min-height: 92px;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 5px 0 var(--shade), 0 8px 16px rgba(150, 100, 60, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .lvl:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--shade); }
+  .lvl .l-id { font-size: 20px; font-weight: 900; }
+  .lvl .l-name { font-size: 14px; font-weight: 800; color: #8f725c; white-space: nowrap; }
+  .lvl .l-stars { font-family: var(--emoji); font-size: 16px; letter-spacing: -1px; }
+  .lvl .l-stars .off { opacity: 0.22; filter: grayscale(1); }
+  .lvl.locked { background: #efe9e1; color: #b8a896; box-shadow: 0 5px 0 #d8cfc3; }
+  .lvl.locked .l-stars { font-size: 22px; }
+  .lvl.next { background: #fff7cf; --shade: #e8c75a; animation: nudge 1.4s ease-in-out infinite; }
+
+  .emo-img { display: inline-block; width: 1.08em; height: 1.08em; vertical-align: -0.16em; object-fit: contain; pointer-events: none; }
+  /* ============== 谁的房子 ============== */
+  body { background: linear-gradient(160deg, #eaf6ff 0%, #fff6ea 52%, #f1ffe9 100%); }
+  .title .emo { display: inline-block; animation: hop 1.4s ease-in-out infinite; }
+
+  #play { padding: calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom)); gap: 12px; flex-direction: column; justify-content: flex-start; align-items: center; }
+  #play.show { display: flex; }
+  .play-inner { width: 100%; max-width: 860px; margin: auto 0; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+  .lv-head { width: 100%; display: flex; align-items: center; gap: 10px; }
+  .lv-title { font-size: 22px; font-weight: 900; white-space: nowrap; }
+  .lv-head .btn { min-height: 44px; font-size: 17px; padding: 0 12px; margin-left: auto; }
+
+  /* 房子 */
+  .houses { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .house {
+    --c: #ffb3c1;
+    width: 132px;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 20px;
+    border: 4px solid #fff;
+    box-shadow: 0 6px 0 rgba(150, 110, 70, 0.16), 0 10px 20px rgba(150, 100, 60, 0.1);
+    padding: 0 0 8px;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+    transition: transform 0.1s;
+  }
+  .house:active { transform: translateY(4px); }
+  .house .roof { width: 100%; height: 28px; background: var(--c); }
+  .house.red { --c: #ff8fa3; }
+  .house.blue { --c: #79b8f5; }
+  .house.yellow { --c: #ffd15c; }
+  .house.green { --c: #7fd49b; }
+  .house .slot {
+    width: 96px; height: 96px;
+    margin: 8px 0 4px;
+    border-radius: 18px;
+    border: 3px dashed #e3d2bd;
+    background: #fffdf8;
+    display: grid; place-items: center;
+    font-family: var(--emoji);
+    font-size: 62px;
+    line-height: 1;
+  }
+  .house .slot .emo-img { width: 1em; height: 1em; vertical-align: middle; }
+  .house.filled .slot { border-style: solid; border-color: #ffd9a8; background: #fff8ee; }
+  .house .num { font-size: 20px; font-weight: 900; color: #8a6a55; }
+
+  /* 还没住进去的动物 */
+  .pool { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; min-height: 84px; }
+  .pet {
+    --shade: #e9d2b3;
+    width: 78px; height: 78px;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 6px 0 var(--shade), 0 10px 18px rgba(150, 100, 60, 0.12);
+    font-family: var(--emoji);
+    font-size: 46px;
+    line-height: 1;
+    display: grid; place-items: center;
+    transition: transform 0.1s, box-shadow 0.08s, background 0.15s;
+  }
+  .pet .emo-img { width: 1em; height: 1em; }
+  .pet:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--shade); }
+  .pet.on { background: #fff0f6; box-shadow: 0 6px 0 #f0a8c6, 0 0 0 4px rgba(255, 143, 184, 0.3); transform: translateY(-3px); }
+  .pet.used { opacity: 0.25; }
+
+  /* 线索 */
+  .clues { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 620px; }
+  .clue {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.8);
+    border: 3px solid transparent;
+    border-radius: 18px;
+    padding: 7px 14px;
+    font-size: 21px; font-weight: 900; color: #6b5642;
+    font-family: var(--font);
+  }
+  .clue .e { font-family: var(--emoji); font-size: 30px; line-height: 1; }
+  .clue .e .emo-img { width: 1em; height: 1em; vertical-align: -0.15em; }
+  .clue .mark { margin-left: auto; font-family: var(--emoji); font-size: 24px; opacity: 0.25; }
+  .clue.ok { border-color: #8fdca8; background: #f0fff5; }
+  .clue.ok .mark { opacity: 1; }
+  .clue.bad { border-color: #ff9aa5; background: #fff0f2; animation: shakeIn 0.5s both; }
+  .clue.bad .mark { opacity: 1; }
+
+  .msg {
+    min-height: 50px;
+    width: 100%;
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 5px 14px;
+    font-size: 19px; font-weight: 900;
+    background: rgba(255, 255, 255, 0.6);
+    border: 3px dashed rgba(220, 180, 120, 0.6);
+    color: #8a7256;
+  }
+  .msg .emo-img { width: 1.1em; height: 1.1em; vertical-align: -0.2em; }
+  .msg.red { background: linear-gradient(135deg, #ff6b78, #ff8b64); color: #fff; border: 3px solid #fff; box-shadow: 0 0 0 3px #ff5c6c; animation: shakeIn 0.5s both; }
+  .msg.gold { background: linear-gradient(135deg, #fff5b8, #ffd54a); color: #7a4c00; border: 3px solid #fff; box-shadow: 0 0 0 3px #ffc62e; animation: popBanner 0.4s both; }
+  .msg.blue { background: linear-gradient(135deg, #e3f3ff, #bfe3ff); color: #2d5a80; border: 3px solid #fff; box-shadow: 0 0 0 3px #8ccfff; }
+
+  .ctrls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .ctrls .btn { min-height: 52px; font-size: 18px; padding: 0 16px; }
+
+  .result .r-stars { font-family: var(--emoji); font-size: 56px; margin-top: 6px; letter-spacing: 4px; }
+  .result .r-stars span { display: inline-block; animation: starUp 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .result .r-stars span.off { opacity: 0.2; filter: grayscale(1); animation: none; }
+  .result .r-lines { margin-top: 10px; font-size: 21px; font-weight: 900; color: #7a6450; line-height: 1.6; }
+  .demo-row { display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; font-family: var(--emoji); font-size: 32px; }
+  .demo-row .lbl { font-family: var(--font); font-size: 19px; font-weight: 900; color: #8a6a55; }
+
+  @media (max-width: 620px) {
+    .house { width: 96px; }
+    .house .slot { width: 72px; height: 72px; font-size: 44px; }
+    .pet { width: 62px; height: 62px; font-size: 36px; }
+    .clue { font-size: 18px; }
+    .clue .e { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <section class="screen show" id="menu">
+    <div class="menu-inner">
+      <header class="menu-head">
+        <div class="title"><span class="emo">🏠</span> 谁的房子</div>
+        <div class="star-total" id="starTotal"><span class="emo">⭐</span> <span id="starNum">0</span></div>
+      </header>
+      <div class="subtitle">看线索，猜出谁住哪间！</div>
+      <div class="chapters" id="chapters"></div>
+      <div class="menu-btns">
+        <a class="btn blue" href="index.html" style="text-decoration:none">🎮 全部游戏</a>
+        <button class="btn purple" id="btnHelp">❓ 怎么玩</button>
+        <button class="btn" id="btnSettings">⚙️ 设置</button>
+        <button class="btn blue" id="btnSound">🔊 有声音</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="play">
+    <div class="play-inner">
+      <div class="lv-head">
+        <div class="lv-title" id="lvTitle">🏠 1-1</div>
+        <button class="btn pink" id="btnLevels">🗺️ 选关</button>
+      </div>
+      <div class="houses" id="houses"></div>
+      <div class="pool" id="pool"></div>
+      <div class="clues" id="clues"></div>
+      <div class="msg" id="msg">先点一只小动物，再点房子</div>
+      <div class="ctrls">
+        <button class="btn yellow" id="btnHint">💡 提示</button>
+        <button class="btn" id="btnReset">🔄 重来</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="tutOv">
+  <div class="sheet tut">
+    <div class="tut-step" data-step="0">
+      <div class="tut-art" id="tutArt0"></div>
+      <div class="tut-text">每只小动物住一间房子</div>
+      <div class="tut-small">点小动物，再点它住的房子</div>
+    </div>
+    <div class="tut-step" data-step="1">
+      <div class="tut-art" id="tutArt1"></div>
+      <div class="tut-text">下面的线索会告诉你怎么排</div>
+      <div class="tut-small">排对了线索会变绿，排错会变红</div>
+    </div>
+    <div class="tut-step" data-step="2">
+      <div class="tut-art" id="tutArt2"></div>
+      <div class="tut-text">先找最好确定的那一条</div>
+      <div class="tut-small">比如「住最左边」，一下就能定下来</div>
+    </div>
+    <div class="tut-dots" id="tutDots"><i></i><i></i><i></i></div>
+    <div class="sheet-btns"><button class="btn pink big" id="tutNext">👉 下一步</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOv">
+  <div class="sheet result win">
+    <div class="r-emo" id="rEmo">🏠</div>
+    <div class="r-title">🎉 全猜对啦！</div>
+    <div class="r-stars" id="rStars"></div>
+    <div class="r-lines" id="rLines"></div>
+    <div class="sheet-btns">
+      <button class="btn pink big" id="rNext">▶️ 下一关</button>
+      <button class="btn big" id="rAgain">🔁 再玩一次</button>
+    </div>
+    <div class="sheet-btns"><button class="btn blue" id="rLevels">🗺️ 选关</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="setOv">
+  <div class="sheet settings">
+    <h2>⚙️ 设置</h2>
+    <div class="set-row">
+      <div class="set-name">🖼️ 用图片显示动物<small style="color:#8a6a55">看不到动物表情时打开</small></div>
+      <div class="seg" data-opt="picAnimals"><button data-v="1">✅ 开</button><button data-v="0">⛔ 关</button></div>
+    </div>
+    <div class="set-row">
+      <div class="set-name">🔊 声音</div>
+      <div class="seg" data-opt="sound"><button data-v="1">✅ 开</button><button data-v="0">⛔ 关</button></div>
+    </div>
+    <div class="parent-zone">
+      <h3>👨‍👩‍👧 家长区</h3>
+      <div class="sheet-btns" style="margin-top:0"><button class="btn" id="btnUnlock">🔓 解锁全部关卡</button></div>
+      <div id="clearStep1" class="sheet-btns"><button class="btn" id="btnClearStars">🗑️ 清空进度</button></div>
+      <div class="confirm-box" id="clearStep2" hidden>
+        <div>真的要清空所有星星吗？</div>
+        <div class="sheet-btns">
+          <button class="btn pink" id="btnClearYes">✅ 确定清空</button>
+          <button class="btn" id="btnClearNo">🙅 不要</button>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-btns"><button class="btn green big" id="setClose">👌 好了</button></div>
+  </div>
+</div>
+
+<div id="confetti"></div>
+
+<script>
+(() => {
+  'use strict';
+  /* ============== 谁的房子（纯逻辑，可单独测） ============== */
+  const CH = [null,
+    { emoji: '🏠', name: '三间小屋', desc: '按线索排好队' },
+    { emoji: '🔎', name: '三条线索', desc: '线索多了，慢慢想' },
+    { emoji: '🏘️', name: '四间房子', desc: '四只小动物' },
+    { emoji: '🕵️', name: '小侦探', desc: '最难的推理' },
+  ];
+
+  const ANIMALS = ['🐰', '🐱', '🐻', '🐼'];
+  const COLORS = ['red', 'blue', 'yellow', 'green'];
+
+  // sol[位置] = 动物下标；clues 里的 a/b 也是动物下标，p 是位置
+  const LEVELS = [
+    { id: '1-1', ch: 1, name: '谁在中间', n: 3, sol: [0,1,2], clues: [{t:'left',a:1,b:2},{t:'notAt',a:2,p:1}] },
+    { id: '1-2', ch: 1, name: '三间小屋', n: 3, sol: [2,1,0], clues: [{t:'at',a:0,p:2},{t:'at',a:1,p:1}] },
+    { id: '1-3', ch: 1, name: '排排坐', n: 3, sol: [2,0,1], clues: [{t:'left',a:0,b:1},{t:'at',a:0,p:1}] },
+    { id: '1-4', ch: 1, name: '猜一猜', n: 3, sol: [1,0,2], clues: [{t:'notAt',a:0,p:0},{t:'last',a:2}] },
+    { id: '1-5', ch: 1, name: '找位置', n: 3, sol: [2,0,1], clues: [{t:'notAt',a:0,p:2},{t:'left',a:2,b:0}] },
+    { id: '2-1', ch: 2, name: '再想想', n: 3, sol: [2,1,0], clues: [{t:'notAt',a:0,p:0},{t:'notAt',a:1,p:0},{t:'next',a:1,b:2}] },
+    { id: '2-2', ch: 2, name: '三条线索', n: 3, sol: [1,0,2], clues: [{t:'notAt',a:0,p:2},{t:'notAt',a:2,p:0},{t:'notAt',a:0,p:0}] },
+    { id: '2-3', ch: 2, name: '不挨着', n: 3, sol: [0,2,1], clues: [{t:'notAt',a:1,p:0},{t:'notAt',a:1,p:1},{t:'notAt',a:0,p:1}] },
+    { id: '2-4', ch: 2, name: '最右边', n: 3, sol: [2,1,0], clues: [{t:'notAt',a:1,p:2},{t:'notAt',a:2,p:1},{t:'notAt',a:2,p:2}] },
+    { id: '2-5', ch: 2, name: '最左边', n: 3, sol: [0,1,2], clues: [{t:'notAt',a:1,p:2},{t:'notAt',a:1,p:0},{t:'notAt',a:0,p:2}] },
+    { id: '3-1', ch: 3, name: '四间房', n: 4, sol: [0,3,2,1], clues: [{t:'first',a:0},{t:'at',a:1,p:3},{t:'notAt',a:2,p:1}] },
+    { id: '3-2', ch: 3, name: '四只动物', n: 4, sol: [1,0,3,2], clues: [{t:'notAt',a:3,p:3},{t:'first',a:1},{t:'at',a:0,p:1}] },
+    { id: '3-3', ch: 3, name: '动动脑', n: 4, sol: [2,0,1,3], clues: [{t:'next',a:1,b:3},{t:'left',a:0,b:1},{t:'notAt',a:1,p:1}] },
+    { id: '3-4', ch: 3, name: '难一点', n: 4, sol: [3,1,2,0], clues: [{t:'notAt',a:0,p:1},{t:'first',a:3},{t:'notAt',a:0,p:2},{t:'notAt',a:2,p:1}] },
+    { id: '3-5', ch: 3, name: '再难点', n: 4, sol: [3,2,1,0], clues: [{t:'notAt',a:2,p:2},{t:'notNext',a:1,b:3},{t:'notNext',a:0,b:3},{t:'notAt',a:0,p:2}] },
+    { id: '4-1', ch: 4, name: '小侦探', n: 4, sol: [1,0,2,3], clues: [{t:'left',a:2,b:3},{t:'notAt',a:3,p:1},{t:'notNext',a:1,b:3},{t:'notNext',a:1,b:2}] },
+    { id: '4-2', ch: 4, name: '绕一绕', n: 4, sol: [0,1,2,3], clues: [{t:'next',a:1,b:2},{t:'notAt',a:1,p:2},{t:'notNext',a:0,b:2},{t:'notNext',a:0,b:3}] },
+    { id: '4-3', ch: 4, name: '五条线索', n: 4, sol: [1,3,2,0], clues: [{t:'notAt',a:1,p:1},{t:'notAt',a:1,p:3},{t:'notNext',a:0,b:3},{t:'notAt',a:0,p:1},{t:'left',a:2,b:0}] },
+    { id: '4-4', ch: 4, name: '高手题', n: 4, sol: [2,1,3,0], clues: [{t:'next',a:0,b:3},{t:'notAt',a:0,p:2},{t:'left',a:2,b:1},{t:'notAt',a:1,p:3}] },
+    { id: '4-5', ch: 4, name: '最后一关', n: 4, sol: [0,3,2,1], clues: [{t:'notAt',a:3,p:3},{t:'notAt',a:0,p:2},{t:'notAt',a:3,p:0},{t:'notNext',a:1,b:3},{t:'notAt',a:3,p:2}] },  ];
+
+  const posOf = (place, a) => place.indexOf(a);
+
+  // 一条线索现在成不成立：true 成立 / false 违反 / null 还看不出来
+  function check(c, place) {
+    const pa = posOf(place, c.a);
+    const pb = c.b === undefined ? -1 : posOf(place, c.b);
+    switch (c.t) {
+      case 'at': return pa < 0 ? null : pa === c.p;
+      case 'notAt': return pa < 0 ? null : pa !== c.p;
+      case 'first': return pa < 0 ? null : pa === 0;
+      case 'last': return pa < 0 ? null : pa === place.length - 1;
+      case 'left': return (pa < 0 || pb < 0) ? null : pa + 1 === pb;
+      case 'next': return (pa < 0 || pb < 0) ? null : Math.abs(pa - pb) === 1;
+      case 'notNext': return (pa < 0 || pb < 0) ? null : Math.abs(pa - pb) !== 1;
+    }
+    return null;
+  }
+
+  const full = (place) => place.every((v) => v !== null && v !== undefined && v >= 0);
+  const solved = (lv, place) => full(place) && lv.clues.every((c) => check(c, place) === true);
+
+  // 所有排法（n 最多 4，直接枚举）
+  function allPerms(n) {
+    const out = [];
+    const rec = (cur, left) => {
+      if (!left.length) { out.push(cur.slice()); return; }
+      for (let i = 0; i < left.length; i++) { cur.push(left[i]); rec(cur, left.filter((_, k) => k !== i)); cur.pop(); }
+    };
+    rec([], [...Array(n).keys()]);
+    return out;
+  }
+
+  // 和现在摆的不冲突、又满足全部线索的排法
+  function fits(lv, place) {
+    return allPerms(lv.n).filter((s) => {
+      for (let p = 0; p < lv.n; p++) {
+        const v = place[p];
+        if (v !== null && v !== undefined && v >= 0 && s[p] !== v) return false;
+      }
+      return lv.clues.every((c) => check(c, s) === true);
+    });
+  }
+
+  // 提示：告诉她下一个能确定的位置；要是现在摆错了就先说一声
+  function hint(lv, place) {
+    const ok = fits(lv, place);
+    if (!ok.length) return { bad: true };
+    const s = ok[0];
+    for (let p = 0; p < lv.n; p++) {
+      const v = place[p];
+      if (v === null || v === undefined || v < 0) return { a: s[p], p, sure: ok.length === 1 };
+    }
+    return null;
+  }
+
+  function stars(mistakes, hints) {
+    if (mistakes === 0 && hints === 0) return 3;
+    if (mistakes <= 2 && hints <= 1) return 2;
+    return 1;
+  }
+
+  window.HouseGame = { CH, ANIMALS, COLORS, LEVELS, check, full, solved, hint, fits, allPerms, stars, posOf };
+})();
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  /* ============== 动物头像：系统 emoji，画不出来就用备用图片 ============== */
+  // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
+  const Emo = (() => {
+    const FILES = {
+      '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
+      '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
+      '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
+      '🐘': '1f418', '🧑': '1f9d1', '🏠': '1f3e0', '⭐': '2b50', '🐵': '1f435', '🐹': '1f439',
+      '🍪': '1f36a', '🍎': '1f34e', '🥕': '1f955', '🍌': '1f34c', '🍬': '1f36c', '🍓': '1f353',
+      '🍇': '1f347', '🧺': '1f9fa', '✅': '2705', '🍉': '1f349', '🪷': '1fab7', '🏁': '1f3c1',
+      '🙋': '1f64b', '👧': '1f467', '🏆': '1f3c6', '⚖️': '2696', '🎴': '1f3b4',
+      '❌': '274c', '❓': '2753', '🧩': '1f9e9', '⏰': '23f0', '🔎': '1f50e',
+      '🔁': '1f501', '🌰': '1f330', '🏘️': '1f3d8', '🕵️': '1f575', '📈': '1f4c8', '🔢': '1f522',
+    };
+    const SPLIT = new RegExp('(' + Object.keys(FILES).join('|') + ')', 'u');
+    const src = (e) => 'icons/emoji/' + FILES[e] + '.png';
+    const imgs = new Map();
+    const forced = /[?&]emoji=img(?:&|$)/.test(location.search) || /MicroMessenger/i.test(navigator.userAgent);
+    const off = /[?&]emoji=text(?:&|$)/.test(location.search);
+    let detected = null;   // 这台设备能不能画 emoji（第一次用到时才测）
+    let loading = false;
+    let ready = null;
+    let gen = 0;
+
+    function canvasEmojiOk() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const x = c.getContext('2d');
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        // 画两个颜色鲜明的 emoji：都画不出彩色，就说明这台设备画不了
+        const check = (ch, test) => {
+          x.clearRect(0, 0, 32, 32);
+          x.font = '24px ' + EMOJI_FONT;
+          x.fillText(ch, 16, 17);
+          const d = x.getImageData(0, 0, 32, 32).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && test(d[i], d[i + 1], d[i + 2])) n++;
+          return n >= 10;
+        };
+        return check('🦊', (r, g, b) => r - b > 60) || check('🐸', (r, g, b) => g - r > 30);
+      } catch (e) {
+        return true; // 读不了像素就当作正常
+      }
+    }
+
+    function useImg() {
+      if (off) return false;
+      if (forced) return true;
+      if (window.__picAnimals) return true;
+      if (detected === null) detected = canvasEmojiOk();
+      return !detected;
+    }
+
+    function preload(cb) {
+      if (cb) ready = cb;
+      if (!useImg() || loading) return;
+      loading = true;
+      let left = Object.keys(FILES).length;
+      for (const e of Object.keys(FILES)) {
+        const im = new Image();
+        im.onload = im.onerror = () => { if (--left === 0 && ready) ready(); };
+        im.src = src(e);
+        imgs.set(e, im);
+      }
+    }
+
+    // 在 canvas 上画：成功返回 true
+    function draw(x, e, cx, cy, size) {
+      if (!useImg()) return false;
+      preload();
+      const im = imgs.get(e);
+      if (!im || !im.complete || !im.naturalWidth) return false;
+      x.drawImage(im, cx - size / 2, cy - size / 2, size, size);
+      return true;
+    }
+
+    // 设置 DOM 文字，动物 emoji 换成图片
+    function text(el, str) {
+      str = String(str);
+      const on = useImg();
+      const key = (on ? 'i' + gen : 't') + str;
+      if (el.dataset.emo === key) return;
+      el.dataset.emo = key;
+      el.dataset.emoRaw = str;
+      if (!on) { el.textContent = str; return; }
+      preload();
+      el.textContent = '';
+      for (const part of str.split(SPLIT)) {
+        if (!part) continue;
+        if (FILES[part]) {
+          const im = document.createElement('img');
+          im.className = 'emo-img';
+          im.src = src(part);
+          im.alt = part;
+          im.draggable = false;
+          el.appendChild(im);
+        } else {
+          el.appendChild(document.createTextNode(part));
+        }
+      }
+    }
+
+    // 设置里切换之后重画
+    function refresh() {
+      gen++;
+      loading = false;
+      preload();
+      // 把已经画过的地方按新模式重画一遍
+      document.querySelectorAll('[data-emo-raw]').forEach((el) => text(el, el.dataset.emoRaw));
+    }
+
+    return { useImg, preload, draw, text, refresh, has: (e) => useImg() && !!FILES[e] };
+  })();
+
+  window.Emo = Emo;
+})();
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const TEST = /[?&]test=1(?:&|$)/.test(location.search);
+  const INSTANT = TEST && !/[?&]anim=1(?:&|$)/.test(location.search);
+  const G = HouseGame;
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  const $ = (id) => document.getElementById(id);
+
+  /* ============== 存储 ============== */
+  const Store = (() => {
+    const KEY = 'kidsFangzi.v1';
+    const data = { stars: {}, sound: true, picAnimals: false, unlockAll: false, tutorialSeen: false };
+    try {
+      const o = JSON.parse(window.localStorage.getItem(KEY) || 'null');
+      if (o && typeof o === 'object') {
+        for (const L of G.LEVELS) {
+          const v = o.stars && o.stars[L.id];
+          if (Number.isInteger(v) && v >= 0 && v <= 3) data.stars[L.id] = v;
+        }
+        for (const k of ['sound', 'picAnimals', 'unlockAll', 'tutorialSeen']) if (typeof o[k] === 'boolean') data[k] = o[k];
+      }
+    } catch (e) { /* 忽略 */ }
+    const save = () => { try { window.localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 忽略 */ } };
+    return { data, save };
+  })();
+
+  /* ============== 声音 ============== */
+  const Sound = (() => {
+    let ctx = null, master = null;
+    function unlock() {
+      try {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.5;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      } catch (e) { ctx = null; }
+    }
+    function tone(freq, at, dur, type, vol, slideTo) {
+      const t0 = ctx.currentTime + at;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.03, dur / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    function play(name) {
+      if (!Store.data.sound || !ctx || INSTANT) return;
+      try {
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+        switch (name) {
+          case 'put': tone(560, 0, 0.1, 'triangle', 0.14, 780); break;
+          case 'take': tone(620, 0, 0.1, 'sine', 0.11, 380); break;
+          case 'pick': tone(700, 0, 0.06, 'sine', 0.1); break;
+          case 'no': tone(330, 0, 0.16, 'square', 0.1, 220); break;
+          case 'tip': [660, 880].forEach((f, i) => tone(f, i * 0.09, 0.16, 'sine', 0.13)); break;
+          case 'boop': tone(420, 0, 0.14, 'triangle', 0.12, 330); break;
+          case 'win':
+            [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, i === 3 ? 0.5 : 0.18, 'triangle', 0.2));
+            tone(1319, 0.5, 0.45, 'sine', 0.1);
+            break;
+        }
+      } catch (e) { /* 忽略 */ }
+    }
+    return { unlock, play };
+  })();
+
+  /* ============== 状态 ============== */
+  const S = { screen: 'menu', lv: null, place: [], sel: null, mistakes: 0, hints: 0, done: false, tutStep: 0 };
+
+  const mk = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const emoEl = (tag, cls, text) => { const e = mk(tag, cls); Emo.text(e, text); return e; };
+  const idx = (id) => G.LEVELS.findIndex((L) => L.id === id);
+  const totalStars = () => G.LEVELS.reduce((a, L) => a + (Store.data.stars[L.id] || 0), 0);
+  const unlocked = (i) => Store.data.unlockAll || i === 0 || (Store.data.stars[G.LEVELS[i - 1].id] || 0) > 0;
+  const emo = (a) => G.ANIMALS[a];
+
+  /* ============== 选关 ============== */
+  function renderMenu() {
+    $('starNum').textContent = totalStars();
+    $('btnSound').textContent = Store.data.sound ? '🔊 有声音' : '🔇 没声音';
+    const box = $('chapters');
+    box.textContent = '';
+    const firstOpen = G.LEVELS.findIndex((L, i) => unlocked(i) && !(Store.data.stars[L.id] > 0));
+    for (let ch = 1; ch <= 4; ch++) {
+      const C = G.CH[ch];
+      const levels = G.LEVELS.filter((L) => L.ch === ch);
+      const sec = mk('div', 'chapter');
+      const head = mk('div', 'chapter-head');
+      head.appendChild(emoEl('span', 'ch-name', `${C.emoji} 第${ch}章 ${C.name}`));
+      head.appendChild(mk('span', 'ch-desc', C.desc));
+      const got = levels.reduce((a, L) => a + (Store.data.stars[L.id] || 0), 0);
+      head.appendChild(mk('span', 'ch-stars', `⭐ ${got}/${levels.length * 3}`));
+      sec.appendChild(head);
+      const row = mk('div', 'levels');
+      for (const L of levels) {
+        const i = idx(L.id);
+        const open = unlocked(i);
+        const b = mk('button', 'lvl' + (open ? '' : ' locked') + (i === firstOpen ? ' next' : ''));
+        b.dataset.id = L.id;
+        b.appendChild(mk('div', 'l-id', L.id));
+        b.appendChild(mk('div', 'l-name', L.name));
+        const st = mk('div', 'l-stars');
+        if (open) {
+          const v = Store.data.stars[L.id] || 0;
+          for (let k = 1; k <= 3; k++) st.appendChild(mk('span', k <= v ? '' : 'off', '⭐'));
+        } else st.textContent = '🔒';
+        b.appendChild(st);
+        b.addEventListener('click', () => { if (unlocked(idx(L.id))) openLevel(L.id); else Sound.play('boop'); });
+        row.appendChild(b);
+      }
+      sec.appendChild(row);
+      box.appendChild(sec);
+    }
+  }
+
+  function showScreen(name) {
+    S.screen = name;
+    $('menu').classList.toggle('show', name === 'menu');
+    $('play').classList.toggle('show', name === 'play');
+    if (name === 'menu') renderMenu();
+  }
+
+  /* ============== 关卡 ============== */
+  function openLevel(id) {
+    const i = idx(id);
+    if (i < 0) return;
+    S.lv = G.LEVELS[i];
+    S.place = new Array(S.lv.n).fill(null);
+    S.sel = null;
+    S.mistakes = 0;
+    S.hints = 0;
+    S.done = false;
+    hideOverlay('resultOv');
+    showScreen('play');
+    render();
+    setMsg('先点一只小动物，再点房子', '');
+  }
+
+  function reset() { if (S.lv) openLevel(S.lv.id); }
+
+  /* ============== 线索文字 ============== */
+  function clueEl(c) {
+    const row = mk('div', 'clue');
+    const add = (t) => row.appendChild(mk('span', '', t));
+    const addE = (a) => row.appendChild(emoEl('span', 'e', emo(a)));
+    addE(c.a);
+    if (c.t === 'at') add(`住 ${c.p + 1} 号`);
+    else if (c.t === 'notAt') add(`不住 ${c.p + 1} 号`);
+    else if (c.t === 'first') add('住最左边');
+    else if (c.t === 'last') add('住最右边');
+    else if (c.t === 'left') { add('就在'); addE(c.b); add('的左边'); }
+    else if (c.t === 'next') { add('和'); addE(c.b); add('挨着'); }
+    else if (c.t === 'notNext') { add('和'); addE(c.b); add('不挨着'); }
+    const st = G.check(c, S.place);
+    row.classList.toggle('ok', st === true);
+    row.classList.toggle('bad', st === false);
+    row.appendChild(emoEl('span', 'mark', st === true ? '✅' : st === false ? '❌' : '❓'));
+    return row;
+  }
+
+  function render() {
+    const lv = S.lv;
+    Emo.text($('lvTitle'), `🏠 ${lv.id}`);
+
+    const hs = $('houses');
+    hs.textContent = '';
+    for (let p = 0; p < lv.n; p++) {
+      const h = mk('button', 'house ' + G.COLORS[p] + (S.place[p] !== null ? ' filled' : ''));
+      h.dataset.p = p;
+      h.appendChild(mk('div', 'roof'));
+      const slot = mk('div', 'slot');
+      if (S.place[p] !== null) Emo.text(slot, emo(S.place[p]));
+      h.appendChild(slot);
+      h.appendChild(mk('div', 'num', `${p + 1} 号`));
+      h.addEventListener('click', () => tapHouse(p));
+      hs.appendChild(h);
+    }
+
+    const pool = $('pool');
+    pool.textContent = '';
+    for (let a = 0; a < lv.n; a++) {
+      const used = S.place.includes(a);
+      const b = emoEl('button', 'pet' + (S.sel === a ? ' on' : '') + (used ? ' used' : ''), emo(a));
+      b.dataset.a = a;
+      b.addEventListener('click', () => tapPet(a));
+      pool.appendChild(b);
+    }
+
+    const cl = $('clues');
+    cl.textContent = '';
+    lv.clues.forEach((c) => cl.appendChild(clueEl(c)));
+  }
+
+  function setMsg(text, kind) {
+    const el = $('msg');
+    el.dataset.kind = kind || '';
+    el.className = 'msg' + (kind ? ' ' + kind : '');
+    Emo.text(el, text);
+  }
+
+  function tapPet(a) {
+    if (S.done) return 'done';
+    if (S.place.includes(a)) {           // 已经住进去了：再点一下请它出来
+      S.place[S.place.indexOf(a)] = null;
+      S.sel = a;
+      Sound.play('take');
+      render();
+      setMsg('它出来啦，换一间试试', '');
+      return 'take';
+    }
+    S.sel = S.sel === a ? null : a;
+    Sound.play('pick');
+    render();
+    return 'sel';
+  }
+
+  function tapHouse(p) {
+    if (S.done) return 'done';
+    if (S.place[p] !== null) {            // 房子里有动物：请它出来
+      const a = S.place[p];
+      S.place[p] = null;
+      S.sel = a;
+      Sound.play('take');
+      render();
+      setMsg('它出来啦', '');
+      return 'take';
+    }
+    if (S.sel === null) { Sound.play('boop'); setMsg('先点一只小动物', ''); return 'nosel'; }
+    S.place[p] = S.sel;
+    S.sel = null;
+    Sound.play('put');
+    render();
+    checkNow();
+    return 'put';
+  }
+
+  function checkNow() {
+    const lv = S.lv;
+    const broken = lv.clues.filter((c) => G.check(c, S.place) === false).length;
+    if (broken) {
+      S.mistakes++;
+      setMsg('红色那条线索不对哦，换一间试试', 'red');
+      return;
+    }
+    if (G.full(S.place)) {
+      if (G.solved(lv, S.place)) { win(); return; }
+      S.mistakes++;
+      setMsg('住满了，可是有线索不对', 'red');
+      return;
+    }
+    setMsg('好，接着看下一条线索', 'blue');
+  }
+
+  function win() {
+    S.done = true;
+    const stars = G.stars(S.mistakes, S.hints);
+    Store.data.stars[S.lv.id] = Math.max(Store.data.stars[S.lv.id] || 0, stars);
+    Store.save();
+    Sound.play('win');
+    setMsg('全猜对啦！🎉', 'gold');
+    render();
+    if (INSTANT) showResult(stars);
+    else setTimeout(() => showResult(stars), 800);
+  }
+
+  function hint() {
+    if (!S.lv || S.done) return;
+    S.hints++;
+    Sound.play('tip');
+    const h = G.hint(S.lv, S.place);
+    if (!h) return;
+    if (h.bad) { setMsg('现在放的里面有一只不对，先请一只出来', 'red'); return; }
+    setMsg(`${emo(h.a)} 只能住 ${h.p + 1} 号`, '');
+    S.sel = h.a;
+    render();
+    const el = $('houses').children[h.p];
+    if (el) { el.classList.add('filled'); setTimeout(() => render(), INSTANT ? 0 : 1800); }
+  }
+
+  function showResult(stars) {
+    const st = $('rStars');
+    st.textContent = '';
+    for (let k = 1; k <= 3; k++) {
+      const s = mk('span', k <= stars ? '' : 'off', '⭐');
+      s.style.animationDelay = (k * 0.18) + 's';
+      st.appendChild(s);
+    }
+    Emo.text($('rEmo'), emo(S.lv.sol[0]));
+    const lines = $('rLines');
+    lines.textContent = '';
+    lines.appendChild(emoEl('div', '', S.lv.sol.map((a, p) => `${p + 1}号 ${emo(a)}`).join('　')));
+    lines.appendChild(mk('div', '', S.mistakes === 0 ? '✅ 一次就排对了' : `排错了 ${S.mistakes} 次`));
+    lines.appendChild(mk('div', '', S.hints === 0 ? '✅ 没用提示' : `用了 ${S.hints} 次提示`));
+    $('rNext').hidden = idx(S.lv.id) >= G.LEVELS.length - 1;
+    showOverlay('resultOv');
+    if (!INSTANT) confetti();
+  }
+
+  function confetti() {
+    const box = $('confetti');
+    box.textContent = '';
+    const colors = ['#ff8fb8', '#6bbfff', '#ffd24a', '#7ed9a6', '#c9a7ff', '#ffa45c'];
+    const W = window.innerWidth;
+    for (let i = 0; i < 60; i++) {
+      const p = mk('i');
+      if (i % 6 === 0) {
+        p.textContent = ['⭐', '🏠', '💖'][i % 3];
+        p.style.fontSize = 18 + Math.random() * 14 + 'px';
+        p.style.fontFamily = EMOJI_FONT;
+      } else {
+        p.style.width = 8 + Math.random() * 8 + 'px';
+        p.style.height = 10 + Math.random() * 10 + 'px';
+        p.style.background = colors[i % colors.length];
+      }
+      p.style.left = Math.random() * W + 'px';
+      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 900 - 450) + 'deg');
+      p.style.animationDuration = 2.2 + Math.random() * 1.8 + 's';
+      p.style.animationDelay = Math.random() * 0.5 + 's';
+      box.appendChild(p);
+    }
+    setTimeout(() => { box.textContent = ''; }, 4500);
+  }
+
+  /* ============== 弹层 ============== */
+  const showOverlay = (id) => $(id).classList.add('show');
+  const hideOverlay = (id) => $(id).classList.remove('show');
+
+  let tutBuilt = false;
+  function openTutorial() {
+    if (!tutBuilt) {
+      tutBuilt = true;
+      const row = (parts) => {
+        const r = mk('div', 'demo-row');
+        parts.forEach((t) => r.appendChild(t.length > 3 ? mk('span', 'lbl', t) : emoEl('span', '', t)));
+        return r;
+      };
+      $('tutArt0').appendChild(row(['🐰', '🏠', ' 一只住一间 ', '🐱', '🏠']));
+      $('tutArt1').appendChild(row(['✅', ' 对了变绿 ', '❌', ' 错了变红 ']));
+      $('tutArt2').appendChild(row(['🐰', ' 住最左边 ', '👈']));
+    }
+    S.tutStep = 0;
+    renderTutorial();
+    showOverlay('tutOv');
+  }
+  function renderTutorial() {
+    document.querySelectorAll('#tutOv .tut-step').forEach((s) => s.classList.toggle('show', Number(s.dataset.step) === S.tutStep));
+    document.querySelectorAll('#tutDots i').forEach((d, i) => d.classList.toggle('on', i === S.tutStep));
+    $('tutNext').textContent = S.tutStep < 2 ? '👉 下一步' : '🎮 开始玩！';
+  }
+
+  function renderSettings() {
+    document.querySelectorAll('#setOv .seg').forEach((seg) => {
+      const v = !!Store.data[seg.dataset.opt];
+      seg.querySelectorAll('button').forEach((b) => {
+        const isOn = b.dataset.v === '1';
+        b.classList.toggle('on', isOn === v);
+        b.classList.toggle('off-choice', !isOn);
+      });
+    });
+    $('btnUnlock').textContent = Store.data.unlockAll ? '🔒 恢复按顺序解锁' : '🔓 解锁全部关卡';
+  }
+
+  function setOption(name, value) {
+    const v = !!value && value !== '0';
+    Store.data[name] = v;
+    if (name === 'sound' && v) Sound.unlock();
+    if (name === 'picAnimals') { window.__picAnimals = v; Emo.refresh(); if (S.screen === 'play' && S.lv) render(); }
+    Store.save();
+    renderSettings();
+    if (S.screen === 'menu') renderMenu();
+  }
+
+  /* ============== 绑定 ============== */
+  function bind() {
+    const on = (id, fn) => $(id).addEventListener('click', fn);
+    on('btnHelp', openTutorial);
+    on('btnSettings', () => { renderSettings(); $('clearStep1').hidden = false; $('clearStep2').hidden = true; showOverlay('setOv'); });
+    on('btnSound', () => setOption('sound', !Store.data.sound));
+    on('btnLevels', () => showScreen('menu'));
+    on('btnReset', reset);
+    on('btnHint', hint);
+    on('tutNext', () => {
+      if (S.tutStep < 2) { S.tutStep++; renderTutorial(); }
+      else { hideOverlay('tutOv'); Store.data.tutorialSeen = true; Store.save(); }
+    });
+    on('rNext', () => { const i = idx(S.lv.id); hideOverlay('resultOv'); if (i < G.LEVELS.length - 1) openLevel(G.LEVELS[i + 1].id); });
+    on('rAgain', () => { hideOverlay('resultOv'); openLevel(S.lv.id); });
+    on('rLevels', () => { hideOverlay('resultOv'); showScreen('menu'); });
+    document.querySelectorAll('#setOv .seg button').forEach((b) => b.addEventListener('click', () => setOption(b.parentElement.dataset.opt, b.dataset.v === '1')));
+    on('btnUnlock', () => { Store.data.unlockAll = !Store.data.unlockAll; Store.save(); renderSettings(); renderMenu(); });
+    on('btnClearStars', () => { $('clearStep1').hidden = true; $('clearStep2').hidden = false; });
+    on('btnClearNo', () => { $('clearStep1').hidden = false; $('clearStep2').hidden = true; });
+    on('btnClearYes', () => { Store.data.stars = {}; Store.save(); $('clearStep1').hidden = false; $('clearStep2').hidden = true; renderMenu(); });
+    on('setClose', () => hideOverlay('setOv'));
+    ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, Sound.unlock, { capture: true, passive: true }));
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('dblclick', (e) => e.preventDefault());
+  }
+
+  function getState() {
+    return {
+      screen: S.screen,
+      level: S.lv ? S.lv.id : null,
+      place: S.place.slice(),
+      sel: S.sel,
+      done: S.done,
+      mistakes: S.mistakes,
+      hints: S.hints,
+      clueState: S.lv ? S.lv.clues.map((c) => G.check(c, S.place)) : [],
+      msg: $('msg').textContent,
+      msgKind: $('msg').dataset.kind,
+      stars: Object.assign({}, Store.data.stars),
+      overlay: ['tutOv', 'resultOv', 'setOv'].filter((id) => $(id).classList.contains('show')),
+      emojiImages: Emo.useImg(),
+    };
+  }
+
+  function init() {
+    if (INSTANT) document.documentElement.classList.add('test-mode');
+    window.__picAnimals = Store.data.picAnimals;
+    bind();
+    renderSettings();
+    document.querySelectorAll('.title .emo').forEach((el) => { el.dataset.raw = el.dataset.raw || el.textContent; Emo.text(el, el.dataset.raw); });
+    Emo.preload(() => { if (S.screen === 'play' && S.lv) render(); renderMenu(); });
+    showScreen('menu');
+    if (!TEST && !Store.data.tutorialSeen) openTutorial();
+    if (!TEST && 'serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* 忽略 */ });
+    }
+    if (TEST) {
+      window.__house = {
+        G,
+        getState,
+        openLevel: (id) => { openLevel(id); return getState(); },
+        tapPet: (a) => tapPet(a),
+        tapHouse: (p) => tapHouse(p),
+        hint: () => { hint(); return getState(); },
+        reset: () => { reset(); return getState(); },
+        setOption: (k, v) => { setOption(k, v); return getState(); },
+        unlockAll: (v) => { Store.data.unlockAll = !!v; Store.save(); renderMenu(); },
+        solve: () => { S.lv.sol.forEach((a, p) => { S.sel = a; tapHouse(p); }); return getState(); },
+      };
+    }
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>

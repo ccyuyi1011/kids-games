@@ -15,16 +15,19 @@
 - `migong.html`：小动物迷宫
 - `shudu.html`：动物数独
 - `clock.html`：几点了（认钟表）
-- `index.html`：总入口（十三个游戏的选择页）
+- `tuiguo.html`：推苹果（推箱子）
+- `guilv.html`：找规律
+- `fangzi.html`：谁的房子（逻辑推理）
+- `index.html`：总入口（十六个游戏，按类别分组）
 - `wuziqi-jiuban.html`：最早的五子棋版本
 
 ## 装到 iPad 上
 
-1. 用 iPad 的 Safari 打开总入口 `.../`（或单个游戏） `.../kids.html`、`.../tiaoqi.html`、`.../doushouqi.html`、`.../chess.html`、`.../huijia.html` 、`.../fendongxi.html` 、`.../fanpai.html`、`.../tianping.html`、`.../shuzhou.html` 、`.../qiang21.html`、`.../migong.html`、`.../shudu.html` 或 `.../clock.html`
+1. 用 iPad 的 Safari 打开总入口 `.../`（或单个游戏） `.../kids.html`、`.../tiaoqi.html`、`.../doushouqi.html`、`.../chess.html`、`.../huijia.html` 、`.../fendongxi.html` 、`.../fanpai.html`、`.../tianping.html`、`.../shuzhou.html` 、`.../qiang21.html`、`.../migong.html`、`.../shudu.html` 、`.../clock.html`、`.../tuiguo.html`、`.../guilv.html` 或 `.../fangzi.html`
 2. 点分享按钮 → **添加到主屏幕**
 3. 以后点主屏幕上的图标就能全屏玩，没网也能玩
 
 ## 更新游戏
 
-改完页面后，把 `sw.js` 里的 `CACHE` 版本号加一（比如 `kids-games-v12` 改成 `kids-games-v13`）再发布。
+改完页面后，把 `sw.js` 里的 `CACHE` 版本号加一（比如 `kids-games-v13` 改成 `kids-games-v14`）再发布。
 iPad 联网打开一次后，下一次打开就是新版本。

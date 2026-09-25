@@ -1,0 +1,16 @@
+{
+  "name": "推苹果",
+  "short_name": "推苹果",
+  "id": "./tuiguo.html",
+  "start_url": "./tuiguo.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#fff0e6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/tuiguo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/tuiguo-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
