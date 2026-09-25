@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="分东西">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#fff0e2">
+<link rel="manifest" href="fen.webmanifest">
+<link rel="apple-touch-icon" href="icons/fen-180.png">
+<link rel="icon" type="image/png" href="icons/fen-192.png">
+<title>分东西</title>
+<style>
+  /* ============== 基础与配色 ============== */
+  :root {
+    --ink: #5b4331;
+    --ink-soft: #9a7f69;
+    --pink: #ff8fb8;
+    --pink-bg: #ffd6e5;
+    --blue: #6bbfff;
+    --blue-bg: #d4ecff;
+    --gold: #ffc93c;
+    --red: #ff4658;
+    --sheet: #fffdf8;
+    --font: ui-rounded, "SF Pro Rounded", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: var(--font);
+    color: var(--ink);
+    background: linear-gradient(160deg, #e9f8dd 0%, #fff5e1 50%, #e2f2ff 100%);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(190, 240, 170, 0.55) 0, rgba(190, 240, 170, 0) 28%),
+      radial-gradient(circle at 92% 18%, rgba(255, 230, 150, 0.5) 0, rgba(255, 230, 150, 0) 26%),
+      radial-gradient(circle at 85% 90%, rgba(170, 215, 255, 0.55) 0, rgba(170, 215, 255, 0) 30%),
+      radial-gradient(circle at 12% 88%, rgba(255, 200, 220, 0.45) 0, rgba(255, 200, 220, 0) 26%);
+  }
+
+  button {
+    font-family: inherit;
+    color: inherit;
+    border: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .emo { font-family: var(--emoji); }
+
+  #app { position: fixed; inset: 0; }
+
+  .screen { position: absolute; inset: 0; display: none; }
+  .screen.show { display: flex; }
+
+  /* ============== 通用按钮 ============== */
+  .btn {
+    --shade: #e9d2b3;
+    min-height: 56px;
+    padding: 0 20px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 5px 0 var(--shade), 0 9px 18px rgba(150, 100, 60, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: transform 0.08s, box-shadow 0.08s, opacity 0.2s, filter 0.15s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--shade), 0 3px 8px rgba(150, 100, 60, 0.12); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .btn:disabled:active { transform: none; box-shadow: 0 5px 0 var(--shade); }
+  .btn.pink   { background: linear-gradient(#ffb3cf, #ff8fb8); color: #fff; --shade: #e36a97; text-shadow: 0 1px 1px rgba(170, 50, 90, 0.35); }
+  .btn.blue   { background: linear-gradient(#bfe3ff, #8ccfff); color: #2d5a80; --shade: #5fa9e0; }
+  .btn.green  { background: linear-gradient(#c9f2d6, #9fe3b6); color: #2f6b45; --shade: #6fc18d; }
+  .btn.yellow { background: linear-gradient(#fff0a8, #ffd966); color: #7a5300; --shade: #e7b63c; }
+  .btn.purple { background: linear-gradient(#e6d6ff, #c9b0ff); color: #4f3a85; --shade: #a58ae0; }
+  .btn.big { min-height: 64px; font-size: 24px; border-radius: 24px; padding: 0 28px; }
+
+  /* ============== 菜单页 ============== */
+  #menu {
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding:
+      calc(14px + env(safe-area-inset-top))
+      calc(20px + env(safe-area-inset-right))
+      calc(20px + env(safe-area-inset-bottom))
+      calc(20px + env(safe-area-inset-left));
+  }
+  .menu-inner {
+    width: 100%;
+    max-width: 1120px;
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .title {
+    font-size: clamp(32px, 5.2vw, 50px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #5d4a2f;
+    text-shadow: 0 3px 0 #fff, 0 6px 14px rgba(120, 200, 110, 0.35);
+    white-space: nowrap;
+  }
+  .title .emo { display: inline-block; animation: roar 2.4s ease-in-out infinite; }
+  .star-total {
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-size: 26px;
+    font-weight: 900;
+    color: #b07a00;
+    box-shadow: 0 5px 0 #f1d58c, 0 8px 16px rgba(180, 130, 40, 0.15);
+    white-space: nowrap;
+  }
+  .star-total.bump { animation: bump 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .subtitle { text-align: center; font-size: clamp(22px, 3vw, 28px); font-weight: 900; color: #6d5a3d; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  @media (min-aspect-ratio: 4/3) and (min-width: 960px) {
+    .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+  }
+  .card {
+    --bg: #fff;
+    --shade: #e9d2b3;
+    position: relative;
+    background: var(--bg);
+    border-radius: 28px;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 6px 0 var(--shade), 0 12px 22px rgba(150, 100, 60, 0.13);
+    transition: transform 0.12s, box-shadow 0.08s;
+    min-width: 0;
+  }
+  .card:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--shade), 0 4px 10px rgba(150, 100, 60, 0.12); }
+  .card .c-emo { font-family: var(--emoji); font-size: clamp(50px, 6.4vw, 70px); line-height: 1.15; animation: sway 3s ease-in-out infinite; }
+  .card:nth-child(2) .c-emo { animation-delay: -0.6s; }
+  .card:nth-child(3) .c-emo { animation-delay: -1.2s; }
+  .card:nth-child(4) .c-emo { animation-delay: -1.8s; }
+  .card:nth-child(5) .c-emo { animation-delay: -2.4s; }
+  .card .c-name { font-size: 24px; font-weight: 900; }
+  .card .c-tag { font-size: 18px; font-weight: 700; color: #8f725c; white-space: nowrap; }
+  .card .c-paws { font-family: var(--emoji); font-size: 15px; letter-spacing: -1px; white-space: nowrap; }
+  .card .c-paws .off { opacity: 0.2; filter: grayscale(1); }
+  .card .c-wins {
+    margin-top: 2px;
+    font-size: 18px;
+    font-weight: 900;
+    color: #a26f00;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    padding: 2px 12px;
+    white-space: nowrap;
+  }
+  .card.family .c-tag { white-space: normal; text-align: center; }
+
+  .opt-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 22px; }
+  .opt-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 10px;
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 26px;
+    padding: 10px 16px;
+    box-shadow: 0 4px 14px rgba(150, 100, 60, 0.08);
+  }
+  .opt-label { font-size: 20px; font-weight: 900; margin-right: 4px; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .chip {
+    min-height: 56px;
+    min-width: 56px;
+    padding: 0 14px;
+    border-radius: 18px;
+    background: #fff;
+    border: 3px solid #f1e4d3;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+    white-space: nowrap;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .chip.emo-chip { font-family: var(--emoji); font-size: 34px; width: 62px; height: 62px; padding: 0; line-height: 1; }
+  .chip.on {
+    border-color: var(--pink);
+    background: #fff0f6;
+    box-shadow: 0 0 0 4px rgba(255, 143, 184, 0.28);
+    transform: scale(1.07);
+  }
+  .menu-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding-bottom: 6px; }
+
+  @keyframes sway {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg) translateY(-2px); }
+  }
+  @keyframes roar {
+    0%, 70%, 100% { transform: scale(1) rotate(0); }
+    78% { transform: scale(1.18) rotate(-8deg); }
+    86% { transform: scale(1.12) rotate(6deg); }
+  }
+  @keyframes bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* ============== 游戏页布局 ============== */
+  #game {
+    padding:
+      calc(10px + env(safe-area-inset-top))
+      calc(14px + env(safe-area-inset-right))
+      calc(10px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
+    --bw: 400px;
+    --bh: 500px;
+    --col: 600px;
+    --panel: 340px;
+  }
+  #game.show {
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    row-gap: 10px;
+    column-gap: 26px;
+  }
+  #game.port {
+    grid-template-columns: var(--col);
+    grid-template-rows: auto auto var(--bh) auto;
+    grid-template-areas: "top" "banner" "board" "controls";
+  }
+  #game.land {
+    grid-template-columns: var(--bw) var(--panel);
+    grid-template-rows: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+    grid-template-areas: "board ." "board top" "board banner" "board controls" "board .";
+    row-gap: 18px;
+  }
+  .topbar { grid-area: top; min-width: 0; }
+  #bannerSlot { grid-area: banner; position: relative; height: 84px; min-width: 0; }
+  #game.land #bannerSlot { height: 132px; }
+  .board-wrap {
+    grid-area: board;
+    position: relative;
+    width: var(--bw);
+    height: var(--bh);
+    justify-self: center;
+    align-self: center;
+  }
+  #board {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #board.can { cursor: pointer; }
+
+  /* 玩家卡片 */
+  .players { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .pcard {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 24px;
+    padding: 6px 12px 6px 6px;
+    border: 3px solid transparent;
+    opacity: 0.72;
+    transition: opacity 0.25s, border-color 0.25s, box-shadow 0.25s;
+  }
+  .pcard .av {
+    flex-shrink: 0;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--emoji);
+    font-size: 36px;
+    line-height: 1;
+    background: var(--pink-bg);
+    border: 3px solid var(--pink);
+  }
+  .pcard.p2 .av { background: var(--blue-bg); border-color: var(--blue); }
+  .pcard .who { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; gap: 2px; }
+  .pcard .nm-row { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .pcard .nm { font-size: 24px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pcard .sub { font-size: 15px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; overflow: hidden; }
+  .pcard .sub.paws { font-family: var(--emoji); letter-spacing: -1px; }
+  .pcard.active {
+    opacity: 1;
+    background: #fff;
+    border-color: #ffd24a;
+    box-shadow: 0 0 0 5px rgba(255, 210, 74, 0.35), 0 8px 16px rgba(150, 100, 60, 0.12);
+  }
+  .pcard.active .av { animation: hop 1.1s ease-in-out infinite; }
+  @keyframes hop {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  .vs { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+  .vs .vs-t { font-family: var(--emoji); font-size: 26px; }
+  .vs .score { font-size: 18px; font-weight: 900; color: var(--ink-soft); white-space: nowrap; }
+  .status {
+    margin-top: 6px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 900;
+    min-height: 34px;
+    line-height: 34px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #game.land .status { font-size: 26px; margin-top: 10px; }
+  #game.land .players { flex-direction: column; align-items: stretch; gap: 6px; }
+  #game.land .pcard { flex: none; }
+  #game.land .pcard .av { width: 62px; height: 62px; font-size: 38px; }
+  #game.land .vs { flex-direction: row; justify-content: center; gap: 12px; }
+  #game.port .pcard .sub { display: none; }
+
+  /* 控制按钮 */
+  .controls { grid-area: controls; display: flex; gap: 10px; justify-content: center; min-width: 0; }
+  .controls .btn { flex: 1 1 0; padding: 0 6px; min-width: 0; }
+  #game.land .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 12px; }
+  #game.land .controls .btn { min-height: 60px; font-size: 22px; }
+  #game.land .controls .btn-set { grid-column: span 2; min-height: 52px; }
+
+  /* ============== 提醒横幅 ============== */
+  .banner {
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px 16px;
+    font-weight: 900;
+    font-size: clamp(22px, 3.4vw, 28px);
+    line-height: 1.22;
+    overflow: hidden;
+  }
+  .banner .b-main { display: block; white-space: nowrap; }
+  .banner .b-main span { white-space: nowrap; }
+  .banner .b-small { display: block; font-size: 18px; font-weight: 800; margin-top: 3px; white-space: nowrap; }
+  #game.land .banner { font-size: 27px; padding: 6px 12px; }
+  #game.land .banner .b-main span { display: block; }
+  .banner.none {
+    background: rgba(255, 255, 255, 0.55);
+    border: 3px dashed rgba(150, 190, 120, 0.55);
+    color: #7f8f62;
+    font-size: 22px;
+    font-weight: 900;
+  }
+  .banner.none .b-small { color: #9aa582; }
+  .banner.red {
+    background: linear-gradient(135deg, #ff5c6c 0%, #ff7a59 100%);
+    color: #fff;
+    border: 4px solid #fff;
+    text-shadow: 0 2px 0 rgba(190, 30, 50, 0.35);
+    box-shadow: 0 0 0 4px #ff5c6c, 0 10px 26px rgba(255, 70, 90, 0.45);
+    animation: shakeIn 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both, glowRed 1.3s ease-in-out 0.6s infinite;
+  }
+  .banner.gold {
+    background: linear-gradient(135deg, #fff5b8 0%, #ffd54a 100%);
+    color: #7a4c00;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 4px #ffc62e, 0 0 26px rgba(255, 200, 40, 0.65);
+    animation: popBanner 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both, glowGold 1.6s ease-in-out 0.45s infinite;
+  }
+  .banner.pink {
+    background: linear-gradient(135deg, #ffe0ec 0%, #ffb8d2 100%);
+    color: #a8325f;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 3px #ff9cc2, 0 8px 18px rgba(255, 120, 170, 0.3);
+    animation: popBanner 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .banner.bubble {
+    overflow: visible;
+    background: #fff;
+    color: #e23a4f;
+    border: 4px solid #ff5c6c;
+    box-shadow: 0 10px 24px rgba(255, 70, 90, 0.3);
+    animation: wobble 0.55s ease-in-out both;
+  }
+  .banner.bubble .b-small { color: #8a6a55; }
+  .banner.bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -17px;
+    margin-left: -14px;
+    border: 14px solid transparent;
+    border-bottom: 0;
+    border-top-color: #ff5c6c;
+  }
+  #game.land .banner.bubble::after {
+    left: -17px;
+    top: 50%;
+    bottom: auto;
+    margin-left: 0;
+    margin-top: -14px;
+    border: 14px solid transparent;
+    border-left: 0;
+    border-right-color: #ff5c6c;
+  }
+  @keyframes shakeIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    30% { transform: scale(1.06) rotate(-2.5deg); opacity: 1; }
+    45% { transform: scale(1) rotate(2.5deg) translateX(6px); }
+    60% { transform: rotate(-2deg) translateX(-6px); }
+    75% { transform: rotate(1.2deg) translateX(3px); }
+    90% { transform: rotate(-0.6deg) translateX(-2px); }
+    100% { transform: none; }
+  }
+  @keyframes glowRed {
+    0%, 100% { box-shadow: 0 0 0 4px #ff5c6c, 0 10px 26px rgba(255, 70, 90, 0.45); }
+    50% { box-shadow: 0 0 0 7px #ff8a96, 0 10px 34px rgba(255, 70, 90, 0.65); }
+  }
+  @keyframes glowGold {
+    0%, 100% { box-shadow: 0 0 0 4px #ffc62e, 0 0 22px rgba(255, 200, 40, 0.55); }
+    50% { box-shadow: 0 0 0 7px #ffe07a, 0 0 36px rgba(255, 200, 40, 0.85); }
+  }
+  @keyframes popBanner {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes wobble {
+    0% { transform: scale(0.8); }
+    30% { transform: scale(1.05) rotate(-2deg); }
+    55% { transform: rotate(2deg); }
+    80% { transform: rotate(-1deg); }
+    100% { transform: none; }
+  }
+
+  /* ============== 弹层通用 ============== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding:
+      calc(16px + env(safe-area-inset-top))
+      calc(16px + env(safe-area-inset-right))
+      calc(16px + env(safe-area-inset-bottom))
+      calc(16px + env(safe-area-inset-left));
+    background: rgba(90, 80, 50, 0.38);
+  }
+  .overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
+  .sheet {
+    position: relative;
+    width: min(640px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--sheet);
+    border-radius: 34px;
+    padding: 26px 24px 24px;
+    text-align: center;
+    border: 4px solid #fff;
+    box-shadow: 0 18px 44px rgba(90, 60, 40, 0.3);
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { transform: scale(0.75); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .sheet h2 { font-size: 30px; font-weight: 900; margin-bottom: 14px; }
+  .sheet-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-top: 18px; }
+
+  /* ============== 教程 ============== */
+  .tut-step { display: none; }
+  .tut-step.show { display: block; animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .tut-art {
+    min-height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .tut-text { font-size: 28px; font-weight: 900; line-height: 1.3; }
+  .tut-small { font-size: 21px; font-weight: 800; color: #8a6f52; margin-top: 4px; }
+  .tut-dots { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+  .tut-dots i { width: 14px; height: 14px; border-radius: 50%; background: #e3e8cf; transition: all 0.25s; }
+  .tut-dots i.on { width: 34px; border-radius: 8px; background: #8fd07a; }
+
+  /* ============== 结果卡片 ============== */
+  .result .r-emo { font-family: var(--emoji); font-size: 84px; line-height: 1.1; animation: hop 1.2s ease-in-out infinite; }
+  .result .r-title { font-size: 44px; font-weight: 900; margin-top: 4px; }
+  .result.win .r-title { color: #ff5f99; text-shadow: 0 3px 0 #ffe0ec; }
+  .result .r-sub { font-size: 24px; font-weight: 800; color: #8a6a55; margin-top: 6px; }
+  .result .r-eat { font-size: 22px; font-weight: 900; color: #3f8a55; margin-top: 8px; }
+  .result .r-star {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 40px;
+    font-weight: 900;
+    color: #d99800;
+    text-shadow: 0 3px 0 #fff3c4;
+    animation: starUp 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .result .r-tip {
+    margin: 16px auto 0;
+    max-width: 460px;
+    padding: 12px 16px;
+    border-radius: 20px;
+    background: #fff1f1;
+    border: 3px dashed #ff9aa5;
+    color: #d8404f;
+    font-size: 22px;
+    font-weight: 900;
+  }
+  .result .r-suggest { margin-top: 18px; width: 100%; max-width: 440px; }
+  .result .r-suggest.btn { animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes starUp {
+    0% { transform: translateY(30px) scale(0.3); opacity: 0; }
+    60% { transform: translateY(-8px) scale(1.25); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  @keyframes nudge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+  #confetti i {
+    position: absolute;
+    top: -40px;
+    display: block;
+    border-radius: 3px;
+    font-style: normal;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--rot)); opacity: 0.9; }
+  }
+
+  /* ============== 设置 ============== */
+  .set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    margin-top: 12px;
+    border-radius: 22px;
+    background: #fff;
+    border: 3px solid #f6e8d6;
+    text-align: left;
+  }
+  .set-name { font-size: 22px; font-weight: 900; }
+  .set-name small { display: block; font-size: 17px; font-weight: 800; color: #d8404f; }
+  .seg { display: flex; gap: 8px; }
+  .seg button {
+    min-height: 56px;
+    min-width: 92px;
+    padding: 0 14px;
+    border-radius: 18px;
+    font-size: 20px;
+    font-weight: 900;
+    background: #f5efe7;
+    color: #a48b77;
+    border: 3px solid transparent;
+  }
+  .seg button.on { background: #e5f8ea; color: #2f7a4b; border-color: #7fd49b; }
+  .seg button.on.off-choice { background: #fff0f0; color: #c0404f; border-color: #ff9aa5; }
+  .parent-zone { margin-top: 18px; padding: 14px; border-radius: 22px; background: #f3f0ff; border: 3px dashed #cbbcf5; }
+  .parent-zone h3 { font-size: 20px; font-weight: 900; color: #5d4a96; margin-bottom: 10px; }
+  .confirm-box { font-size: 22px; font-weight: 900; color: #c0404f; }
+  .confirm-box .sheet-btns { margin-top: 10px; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover:not(:disabled) { filter: brightness(1.04); }
+    .card:hover { transform: translateY(-3px); }
+    .chip:hover { border-color: #f5c9d9; }
+  }
+
+  [hidden] { display: none !important; }
+  .test-mode *, .test-mode *::before, .test-mode *::after { animation: none !important; transition: none !important; }
+  /* ============== 小动物回家 ============== */
+  body { background: linear-gradient(160deg, #e9f8dd 0%, #fff5e1 50%, #e2f2ff 100%); }
+  .title .emo { animation: hop 1.2s ease-in-out infinite; display: inline-block; }
+
+  /* 选关 */
+  .chapters { display: flex; flex-direction: column; gap: 14px; }
+  .chapter {
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 26px;
+    padding: 12px 16px 14px;
+    box-shadow: 0 4px 14px rgba(150, 100, 60, 0.08);
+  }
+  .chapter-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .chapter-head .ch-name { font-size: 24px; font-weight: 900; }
+  .chapter-head .ch-desc { font-size: 17px; font-weight: 800; color: #9a7f69; }
+  .chapter-head .ch-stars { margin-left: auto; font-size: 18px; font-weight: 900; color: #b07a00; }
+  .levels { display: flex; flex-wrap: wrap; gap: 10px; }
+  .lvl {
+    --shade: #dcc9ad;
+    width: 104px;
+    min-height: 92px;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 5px 0 var(--shade), 0 8px 16px rgba(150, 100, 60, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 4px;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .lvl:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--shade); }
+  .lvl .l-id { font-size: 20px; font-weight: 900; }
+  .lvl .l-name { font-size: 14px; font-weight: 800; color: #8f725c; white-space: nowrap; }
+  .lvl .l-stars { font-family: var(--emoji); font-size: 16px; letter-spacing: -1px; }
+  .lvl .l-stars .off { opacity: 0.22; filter: grayscale(1); }
+  .lvl.locked { background: #efe9e1; color: #b8a896; box-shadow: 0 5px 0 #d8cfc3; }
+  .lvl.locked .l-stars { font-size: 22px; }
+  .lvl.next { background: #fff7cf; --shade: #e8c75a; animation: nudge 1.4s ease-in-out infinite; }
+
+  /* 游戏页 */
+  #play {
+    padding:
+      calc(10px + env(safe-area-inset-top))
+      calc(14px + env(safe-area-inset-right))
+      calc(10px + env(safe-area-inset-bottom))
+      calc(14px + env(safe-area-inset-left));
+    gap: 18px;
+    justify-content: center;
+    align-items: center;
+  }
+  #play.show { display: flex; }
+  #play.port { flex-direction: column; }
+  .map-wrap { position: relative; flex: 0 0 auto; display: grid; place-items: center; }
+  .panel { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  #play.land .panel { width: var(--panel, 470px); max-height: 100%; }
+  #play.port .panel { width: min(100%, 760px); }
+
+  .lv-head { display: flex; align-items: center; gap: 10px; }
+  .lv-title { font-size: 26px; font-weight: 900; white-space: nowrap; }
+  .lv-goal { display: flex; gap: 8px; flex-wrap: wrap; font-size: 17px; font-weight: 900; color: #7a6450; }
+  .lv-goal span { background: rgba(255, 255, 255, 0.8); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .lv-head .btn { min-height: 46px; font-size: 18px; padding: 0 14px; margin-left: auto; }
+
+  .msg {
+    position: relative;
+    min-height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 14px;
+    font-size: 21px;
+    font-weight: 900;
+    line-height: 1.3;
+    background: rgba(255, 255, 255, 0.6);
+    border: 3px dashed rgba(150, 190, 120, 0.55);
+    color: #6f7f55;
+  }
+  .msg.red { background: linear-gradient(135deg, #ff6b78, #ff8b64); color: #fff; border: 3px solid #fff; box-shadow: 0 0 0 3px #ff5c6c; animation: shakeIn 0.5s both; }
+  .msg.gold { background: linear-gradient(135deg, #fff5b8, #ffd54a); color: #7a4c00; border: 3px solid #fff; box-shadow: 0 0 0 3px #ffc62e; animation: popBanner 0.4s both; }
+  .msg.blue { background: linear-gradient(135deg, #e3f3ff, #bfe3ff); color: #2d5a80; border: 3px solid #fff; box-shadow: 0 0 0 3px #8ccfff; animation: popBanner 0.4s both; }
+
+  /* 地图 */
+  .map {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cs));
+    grid-template-rows: repeat(var(--rows), var(--cs));
+    border-radius: calc(var(--cs) * 0.22);
+    padding: calc(var(--cs) * 0.08);
+    background: #a8d98f;
+    box-shadow: 0 8px 0 #86bf73, 0 14px 26px rgba(80, 120, 60, 0.22);
+  }
+  .cell { position: relative; margin: calc(var(--cs) * 0.03); border-radius: calc(var(--cs) * 0.16); background: #e7f8d9; display: grid; place-items: center; font-family: var(--emoji); font-size: calc(var(--cs) * 0.6); line-height: 1; }
+  .cell.alt { background: #dbf2c9; }
+  .cell.water { background: linear-gradient(#9fdcff, #6fbdf2); font-size: calc(var(--cs) * 0.4); }
+  .cell.home { background: #ffd0e0; }
+  .cell.start { box-shadow: inset 0 0 0 3px rgba(255, 143, 184, 0.45); }
+  .carrot, .actor, .dot, .boom, .flag {
+    position: absolute;
+    left: calc(var(--cs) * 0.08);
+    top: calc(var(--cs) * 0.08);
+    width: var(--cs);
+    height: var(--cs);
+    display: grid;
+    place-items: center;
+    font-family: var(--emoji);
+    line-height: 1;
+    pointer-events: none;
+    transform: translate(calc(var(--c) * var(--cs)), calc(var(--r) * var(--cs)));
+  }
+  .carrot { font-size: calc(var(--cs) * 0.5); transition: transform 0.3s, opacity 0.3s; }
+  .carrot.eaten { opacity: 0; transform: translate(calc(var(--c) * var(--cs)), calc(var(--r) * var(--cs) - var(--cs) * 0.5)) scale(1.6); }
+  .actor { font-size: calc(var(--cs) * 0.62); z-index: 3; transition: transform var(--step, 400ms) ease-in-out; }
+  .actor .face {
+    width: 76%;
+    height: 76%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 35% 30%, #fff 0, #ffd6e5 55%, #ffc0d7 100%);
+    border: calc(var(--cs) * 0.05) solid #ff8fb8;
+    box-shadow: 0 calc(var(--cs) * 0.05) 0 rgba(120, 80, 40, 0.25);
+    font-size: calc(var(--cs) * 0.46);
+  }
+  .actor.bump .face { animation: bump var(--step, 400ms) ease-in-out; }
+  .actor.hop .face { animation: stepHop var(--step, 400ms) ease-in-out; }
+  .actor.happy .face { animation: hop 0.6s ease-in-out infinite; }
+  @keyframes bump {
+    0%, 100% { transform: translate(0, 0); }
+    40% { transform: translate(calc(var(--bx) * 0.35), calc(var(--by) * 0.35)); }
+    55% { transform: translate(calc(var(--bx) * 0.2), calc(var(--by) * 0.2)) rotate(-12deg); }
+    70% { transform: translate(0, 0) rotate(8deg); }
+  }
+  @keyframes stepHop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--cs) * -0.12)); } }
+  .dot { z-index: 1; }
+  .dot::after { content: ""; width: 22%; height: 22%; border-radius: 50%; background: rgba(255, 110, 160, 0.55); border: 2px solid #fff; }
+  .dot.done::after { background: rgba(255, 180, 0, 0.8); }
+  .boom { font-size: calc(var(--cs) * 0.5); z-index: 4; animation: popBanner 0.3s both; }
+  .flag { font-size: calc(var(--cs) * 0.34); z-index: 2; }
+
+  /* 程序区 */
+  .prog { background: rgba(255, 255, 255, 0.8); border-radius: 22px; padding: 8px 10px 10px; border: 3px solid transparent; }
+  .prog.target { border-color: #ffd24a; box-shadow: 0 0 0 4px rgba(255, 210, 74, 0.3); }
+  .prog-head { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 900; margin-bottom: 6px; cursor: pointer; }
+  .prog-head .cnt { margin-left: auto; font-size: 16px; color: #9a7f69; background: #f5efe7; border-radius: 999px; padding: 2px 10px; }
+  .prog-head .cnt.full { color: #c0404f; background: #fff0f0; }
+  .prog.magic .prog-head { color: #b0407a; }
+  .slots { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 60px; }
+  .blk {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.16);
+    flex-shrink: 0;
+    transition: transform 0.12s;
+  }
+  .blk.U { background: #5aa9f0; }
+  .blk.D { background: #9b7be0; }
+  .blk.L { background: #ff9d3c; }
+  .blk.R { background: #4fbf72; }
+  .blk.M { background: #ff7fb4; font-family: var(--emoji); font-size: 30px; }
+  .blk.run, .rep.run > .rep-head { transform: scale(1.14); box-shadow: 0 0 0 4px #ffd24a, 0 4px 0 rgba(0, 0, 0, 0.16); }
+  .blk.err { box-shadow: 0 0 0 4px #ff3348, 0 4px 0 rgba(0, 0, 0, 0.16); animation: shakeIn 0.5s both; }
+  .blk.ghost { opacity: 0.4; }
+  .add {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    border: 3px dashed #d8c7b1;
+    color: #c8b49a;
+    font-size: 30px;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .add.on { border-color: #ffb800; color: #ffb800; background: #fff8dc; animation: nudge 1.2s ease-in-out infinite; }
+  .rep {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px 5px 5px;
+    border-radius: 18px;
+    background: #fff3c4;
+    border: 3px solid #ffd24a;
+  }
+  .rep.target { background: #ffe98a; box-shadow: 0 0 0 4px rgba(255, 190, 0, 0.35); }
+  .rep-head {
+    min-width: 62px;
+    height: 56px;
+    border-radius: 14px;
+    background: #ffc21a;
+    color: #7a4c00;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.05;
+    padding: 0 6px;
+  }
+  .rep-head small { font-size: 13px; font-weight: 800; opacity: 0.8; }
+  .rep-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .rep-del {
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #ff6b78;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+    border: 2px solid #fff;
+  }
+  .palette { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .palette .blk { width: 72px; height: 72px; font-size: 44px; border-radius: 20px; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18); }
+  .palette .blk:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18); }
+  .palette .blk.rep-btn { width: 96px; background: #ffc21a; color: #7a4c00; font-size: 26px; font-family: var(--emoji); text-shadow: none; }
+  .palette .blk.rep-btn small { display: block; font-family: var(--font); font-size: 15px; font-weight: 900; }
+  .palette .blk.M small { display: block; font-family: var(--font); font-size: 14px; font-weight: 900; color: #fff; }
+  .palette .blk:disabled { opacity: 0.35; }
+  .ctrls { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 10px; }
+  .ctrls .btn { min-height: 58px; font-size: 20px; padding: 0 6px; }
+  .ctrls .go { grid-row: span 2; font-size: 30px; min-height: 126px; }
+  .answer { background: #fffbe8; border: 3px dashed #ffc62e; border-radius: 18px; padding: 8px 10px; }
+  .answer .a-title { font-size: 16px; font-weight: 900; color: #a26f00; margin-bottom: 6px; }
+  .answer .slots { min-height: 0; }
+  .answer .blk, .answer .rep-head { transform: scale(0.8); margin: -4px; }
+
+  /* 教程和章节介绍里的小插图 */
+  .demo-line { display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; font-size: 30px; font-weight: 900; color: #c7a88c; }
+  .demo-line .blk { cursor: default; }
+  .demo-map { display: inline-grid; grid-template-columns: repeat(4, 54px); gap: 4px; padding: 6px; border-radius: 16px; background: #a8d98f; }
+  .demo-map div { width: 54px; height: 54px; border-radius: 10px; background: #e7f8d9; display: grid; place-items: center; font-family: var(--emoji); font-size: 30px; }
+  .demo-map .p { background: #fff3c4; }
+
+  /* 结果 */
+  .result .r-stars { font-family: var(--emoji); font-size: 58px; margin-top: 8px; letter-spacing: 4px; }
+  .result .r-stars span { display: inline-block; animation: starUp 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .result .r-stars span.off { opacity: 0.2; filter: grayscale(1); animation: none; }
+  .result .r-lines { margin-top: 10px; font-size: 21px; font-weight: 900; color: #7a6450; line-height: 1.6; }
+  .result .r-tip2 { margin-top: 10px; font-size: 19px; font-weight: 900; color: #b25e00; }
+
+  /* ============== 分东西 ============== */
+  body { background: linear-gradient(160deg, #fff0e2 0%, #fff8e1 50%, #e8f7ff 100%); }
+  .title .emo { display: inline-block; animation: hop 1.3s ease-in-out infinite; }
+
+  #play { padding: calc(10px + env(safe-area-inset-top)) 14px calc(10px + env(safe-area-inset-bottom)); gap: 12px; flex-direction: column; justify-content: flex-start; align-items: center; }
+  #play.show { display: flex; }
+  .play-inner { width: 100%; max-width: 1000px; margin: auto 0; display: flex; flex-direction: column; gap: 12px; }
+
+  .lv-head { display: flex; align-items: center; gap: 10px; }
+  .lv-title { font-size: 24px; font-weight: 900; white-space: nowrap; }
+  .lv-head .btn { min-height: 46px; font-size: 18px; padding: 0 14px; margin-left: auto; }
+  .goal {
+    font-size: clamp(20px, 2.6vw, 28px);
+    font-weight: 900;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 20px;
+    padding: 10px 14px;
+    line-height: 1.35;
+  }
+  .goal b { color: #e0632a; }
+
+  .msg {
+    min-height: 56px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px 14px;
+    font-size: 20px;
+    font-weight: 900;
+    background: rgba(255, 255, 255, 0.6);
+    border: 3px dashed rgba(220, 180, 120, 0.6);
+    color: #8a7256;
+  }
+  .msg.red { background: linear-gradient(135deg, #ff6b78, #ff8b64); color: #fff; border: 3px solid #fff; box-shadow: 0 0 0 3px #ff5c6c; animation: shakeIn 0.5s both; }
+  .msg.gold { background: linear-gradient(135deg, #fff5b8, #ffd54a); color: #7a4c00; border: 3px solid #fff; box-shadow: 0 0 0 3px #ffc62e; animation: popBanner 0.4s both; }
+
+  /* 盘子 */
+  .plates { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .plate {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 150px;
+    max-width: 260px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 4px solid #ffd9a8;
+    border-radius: 26px;
+    padding: 8px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.1s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .plate:active { transform: translateY(3px); }
+  .plate.box { border-color: #cbbcf5; }
+  .plate.ok { border-color: #7fd49b; box-shadow: 0 0 0 4px rgba(127, 212, 155, 0.35); }
+  .plate.bad { border-color: #ff8a96; box-shadow: 0 0 0 4px rgba(255, 90, 110, 0.3); }
+  .plate .who { font-family: var(--emoji); font-size: 40px; line-height: 1; }
+  .plate .dish {
+    width: 100%;
+    min-height: 92px;
+    border-radius: 18px;
+    background: #fff7ea;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px;
+  }
+  .plate.box .dish { background: #f3f0ff; }
+  .plate .cnt { font-size: 22px; font-weight: 900; color: #7a6450; }
+  .plate .cnt.ok { color: #2f7a4b; }
+  .plate .cnt.bad { color: #c0404f; }
+  .plate .fix { position: absolute; top: -12px; right: -6px; font-size: 18px; font-weight: 900; border-radius: 999px; padding: 2px 10px; color: #fff; white-space: nowrap; }
+  .plate .fix.more { background: #ff6b78; }
+  .plate .fix.less { background: #5aa9f0; }
+
+  .item { font-family: var(--emoji); font-size: 30px; line-height: 1; width: 34px; height: 34px; display: grid; place-items: center; animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .item.start { opacity: 0.55; }
+  .plate .item:active { transform: scale(0.85); }
+
+  /* 托盘 */
+  .tray {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 24px;
+    border: 4px dashed #e6c9a0;
+    padding: 8px;
+    min-height: 92px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .tray.empty::after { content: "都分完啦"; font-size: 18px; font-weight: 900; color: #bda88c; }
+  .tray .item { font-size: 34px; width: 40px; height: 40px; }
+
+  .ctrls { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 10px; }
+  .ctrls .btn { min-height: 56px; font-size: 20px; padding: 0 6px; }
+  @media (max-width: 720px) { .ctrls { grid-template-columns: 1fr 1fr; } }
+
+  .result .r-stars { font-family: var(--emoji); font-size: 58px; margin-top: 8px; letter-spacing: 4px; }
+  .result .r-stars span { display: inline-block; animation: starUp 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .result .r-stars span.off { opacity: 0.2; filter: grayscale(1); animation: none; }
+  .result .r-lines { margin-top: 10px; font-size: 21px; font-weight: 900; color: #7a6450; line-height: 1.6; }
+
+  .demo-row { display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; font-family: var(--emoji); font-size: 34px; }
+  .demo-row .lbl { font-family: var(--font); font-size: 20px; font-weight: 900; color: #8a6a55; }
+
+  .emo-img { display: inline-block; width: 1.08em; height: 1.08em; vertical-align: -0.16em; object-fit: contain; pointer-events: none; }
+  .btn.pulse { animation: nudge 1.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div id="app">
+  <section class="screen show" id="menu">
+    <div class="menu-inner">
+      <header class="menu-head">
+        <div class="title"><span class="emo">🍪</span> 分东西</div>
+        <div class="star-total" id="starTotal"><span class="emo">⭐</span> <span id="starNum">0</span></div>
+      </header>
+      <div class="subtitle">帮小动物们分得公平！</div>
+      <div class="chapters" id="chapters"></div>
+      <div class="menu-btns">
+        <button class="btn purple" id="btnHelp">❓ 怎么玩</button>
+        <button class="btn" id="btnSettings">⚙️ 设置</button>
+        <button class="btn blue" id="btnSound">🔊 有声音</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="play">
+    <div class="play-inner">
+      <div class="lv-head">
+        <div class="lv-title" id="lvTitle">🍪 1-1</div>
+        <button class="btn pink" id="btnLevels">🗺️ 选关</button>
+      </div>
+      <div class="goal" id="goal"></div>
+      <div class="plates" id="plates"></div>
+      <div class="tray" id="tray"></div>
+      <div class="msg" id="msg">点小动物，给它一个吧</div>
+      <div class="ctrls">
+        <button class="btn green" id="btnCheck">✅ 检查</button>
+        <button class="btn blue" id="btnUndo">↩️ 拿回</button>
+        <button class="btn yellow" id="btnHint">💡 提示</button>
+        <button class="btn" id="btnReset">🔄 重来</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay" id="tutOv">
+  <div class="sheet tut">
+    <div class="tut-step" data-step="0">
+      <div class="tut-art" id="tutArt0"></div>
+      <div class="tut-text">点小动物，就给它一个</div>
+      <div class="tut-small">下面托盘里的东西要分完</div>
+    </div>
+    <div class="tut-step" data-step="1">
+      <div class="tut-art" id="tutArt1"></div>
+      <div class="tut-text">看清楚要求：一样多？还是每只几个？</div>
+      <div class="tut-small">上面那行字会告诉你</div>
+    </div>
+    <div class="tut-step" data-step="2">
+      <div class="tut-art" id="tutArt2"></div>
+      <div class="tut-text">分错了没关系，点盘子里的东西拿回来</div>
+      <div class="tut-small">分好了点 ✅ 检查</div>
+    </div>
+    <div class="tut-dots" id="tutDots"><i></i><i></i><i></i></div>
+    <div class="sheet-btns"><button class="btn pink big" id="tutNext">👉 下一步</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="resultOv">
+  <div class="sheet result win">
+    <div class="r-emo" id="rEmo">🐶</div>
+    <div class="r-title">🎉 分对啦！</div>
+    <div class="r-stars" id="rStars"></div>
+    <div class="r-lines" id="rLines"></div>
+    <div class="sheet-btns">
+      <button class="btn pink big" id="rNext">▶️ 下一关</button>
+      <button class="btn big" id="rAgain">🔁 再玩一次</button>
+    </div>
+    <div class="sheet-btns"><button class="btn blue" id="rLevels">🗺️ 选关</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="setOv">
+  <div class="sheet settings">
+    <h2>⚙️ 设置</h2>
+    <div class="set-row">
+      <div class="set-name">🖼️ 用图片显示动物<small style="color:#8a6a55">看不到动物表情时打开</small></div>
+      <div class="seg" data-opt="picAnimals"><button data-v="1">✅ 开</button><button data-v="0">⛔ 关</button></div>
+    </div>
+    <div class="set-row">
+      <div class="set-name">🔊 声音</div>
+      <div class="seg" data-opt="sound"><button data-v="1">✅ 开</button><button data-v="0">⛔ 关</button></div>
+    </div>
+    <div class="parent-zone">
+      <h3>👨‍👩‍👧 家长区</h3>
+      <div class="sheet-btns" style="margin-top:0"><button class="btn" id="btnUnlock">🔓 解锁全部关卡</button></div>
+      <div id="clearStep1" class="sheet-btns"><button class="btn" id="btnClearStars">🗑️ 清空进度</button></div>
+      <div class="confirm-box" id="clearStep2" hidden>
+        <div>真的要清空所有星星吗？</div>
+        <div class="sheet-btns">
+          <button class="btn pink" id="btnClearYes">✅ 确定清空</button>
+          <button class="btn" id="btnClearNo">🙅 不要</button>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-btns"><button class="btn green big" id="setClose">👌 好了</button></div>
+  </div>
+</div>
+
+<div id="confetti"></div>
+
+<script>
+/* === FEN_GAME_START === */
+const FenGame = (() => {
+  'use strict';
+  // 关卡类型：
+  // equal 平均分：全部分完，每只小动物一样多
+  // each  每人几个：每只小动物正好 target 个，多出来的留在托盘
+  // add   再放几个：盘子里已经有 start 个，放到 target 个
+  // rest  分完还剩：平均分，剩下的放进 🧺
+  const CH = [null,
+    { id: 1, emoji: '🍪', name: '平均分', desc: '每只小动物分得一样多' },
+    { id: 2, emoji: '🎯', name: '每人几个', desc: '每只小动物要正好几个' },
+    { id: 3, emoji: '➕', name: '再放几个', desc: '盘子里已经有了，再添到几个' },
+    { id: 4, emoji: '🧺', name: '分完还剩', desc: '分不完的放进筐子里' },
+  ];
+
+  const L = (o) => o;
+  const LEVELS = [
+    // 🍪 平均分
+    L({ id: '1-1', ch: 1, name: '分给两只', type: 'equal', item: '🍪', total: 6, who: ['🐶', '🐱'] }),
+    L({ id: '1-2', ch: 1, name: '分给三只', type: 'equal', item: '🍎', total: 6, who: ['🐶', '🐱', '🐰'] }),
+    L({ id: '1-3', ch: 1, name: '八根胡萝卜', type: 'equal', item: '🥕', total: 8, who: ['🐰', '🐹'] }),
+    L({ id: '1-4', ch: 1, name: '九根香蕉', type: 'equal', item: '🍌', total: 9, who: ['🐵', '🐼', '🐨'] }),
+    L({ id: '1-5', ch: 1, name: '十二块饼干', type: 'equal', item: '🍪', total: 12, who: ['🐶', '🐱', '🐰'] }),
+    L({ id: '1-6', ch: 1, name: '四只分糖', type: 'equal', item: '🍬', total: 12, who: ['🐶', '🐱', '🐰', '🐼'] }),
+    // 🎯 每人几个
+    L({ id: '2-1', ch: 2, name: '每只两个', type: 'each', item: '🍓', target: 2, total: 6, who: ['🐶', '🐱', '🐰'] }),
+    L({ id: '2-2', ch: 2, name: '每只三个', type: 'each', item: '🍪', target: 3, total: 8, who: ['🐼', '🐨'] }),
+    L({ id: '2-3', ch: 2, name: '每只四个', type: 'each', item: '🥕', target: 4, total: 12, who: ['🐰', '🐹', '🐱'] }),
+    L({ id: '2-4', ch: 2, name: '每只五个', type: 'each', item: '🍬', target: 5, total: 12, who: ['🐶', '🐵'] }),
+    L({ id: '2-5', ch: 2, name: '四只每人三个', type: 'each', item: '🍇', target: 3, total: 14, who: ['🐶', '🐱', '🐰', '🐼'] }),
+    // ➕ 再放几个
+    L({ id: '3-1', ch: 3, name: '放到五个', type: 'add', item: '🍪', start: 3, target: 5, total: 6, who: ['🐶'] }),
+    L({ id: '3-2', ch: 3, name: '放到六个', type: 'add', item: '🍎', start: 2, target: 6, total: 7, who: ['🐱'] }),
+    L({ id: '3-3', ch: 3, name: '凑成十个', type: 'add', item: '🍬', start: 4, target: 10, total: 9, who: ['🐰'] }),
+    L({ id: '3-4', ch: 3, name: '再凑成十', type: 'add', item: '🍓', start: 7, target: 10, total: 8, who: ['🐼'] }),
+    L({ id: '3-5', ch: 3, name: '放到十二个', type: 'add', item: '🥕', start: 8, target: 12, total: 9, who: ['🐹'] }),
+    L({ id: '3-6', ch: 3, name: '放到十五个', type: 'add', item: '🍇', start: 9, target: 15, total: 10, who: ['🐵'] }),
+    // 🧺 分完还剩
+    L({ id: '4-1', ch: 4, name: '七块饼干', type: 'rest', item: '🍪', total: 7, who: ['🐶', '🐱'] }),
+    L({ id: '4-2', ch: 4, name: '十个草莓', type: 'rest', item: '🍓', total: 10, who: ['🐰', '🐹', '🐱'] }),
+    L({ id: '4-3', ch: 4, name: '十一颗糖', type: 'rest', item: '🍬', total: 11, who: ['🐼', '🐨'] }),
+    L({ id: '4-4', ch: 4, name: '十三根胡萝卜', type: 'rest', item: '🥕', total: 13, who: ['🐰', '🐹', '🐶', '🐱'] }),
+    L({ id: '4-5', ch: 4, name: '十四颗葡萄', type: 'rest', item: '🍇', total: 14, who: ['🐵', '🐼', '🐨'] }),
+  ];
+
+  const n = (lv) => lv.who.length;
+  const share = (lv) => Math.floor(lv.total / n(lv));      // 平均每只几个
+  const rest = (lv) => lv.total % n(lv);                    // 剩几个
+  const need = (lv) => lv.target - lv.start;                // 还要放几个
+
+  // 目标文字（界面上用）
+  function goal(lv) {
+    if (lv.type === 'equal') return `把 <b>${lv.total}</b> 个 ${lv.item} <b>平均分</b>给 ${n(lv)} 只小动物`;
+    if (lv.type === 'each') return `每只小动物要 <b>${lv.target}</b> 个 ${lv.item}（多的留在托盘里）`;
+    if (lv.type === 'add') return `盘子里已经有 <b>${lv.start}</b> 个 ${lv.item}，放到 <b>${lv.target}</b> 个`;
+    return `把 <b>${lv.total}</b> 个 ${lv.item} 平均分，剩下的放进 🧺`;
+  }
+
+  function hint(lv) {
+    if (lv.type === 'equal') return `${lv.total} 个分给 ${n(lv)} 只，每只 ${share(lv)} 个`;
+    if (lv.type === 'each') return `每只 ${lv.target} 个，${n(lv)} 只一共要 ${lv.target * n(lv)} 个`;
+    if (lv.type === 'add') return `已经有 ${lv.start} 个，${lv.start} + ${need(lv)} = ${lv.target}，再放 ${need(lv)} 个`;
+    return `${lv.total} 个分给 ${n(lv)} 只，每只 ${share(lv)} 个，剩 ${rest(lv)} 个放进筐子`;
+  }
+
+  // 正确答案：每个盘子该有几个（最后一个是筐子，只有 rest 关有）
+  function answer(lv) {
+    if (lv.type === 'add') return [lv.target];
+    const a = lv.who.map(() => (lv.type === 'each' ? lv.target : share(lv)));
+    if (lv.type === 'rest') a.push(rest(lv));
+    return a;
+  }
+
+  const hasBox = (lv) => lv.type === 'rest';
+  // 托盘里一开始有几个（add 关里盘子已有的不算）
+  const trayStart = (lv) => (lv.type === 'add' ? lv.total : lv.total);
+
+  // 检查：counts = 每个盘子现在几个（含筐子），tray = 托盘剩几个
+  function check(lv, counts, tray) {
+    const want = answer(lv);
+    const diffs = counts.map((c, i) => c - want[i]);
+    const leftoverOk = lv.type === 'each' || lv.type === 'add' ? true : tray === 0;
+    const ok = diffs.every((d) => d === 0) && leftoverOk;
+    return { ok, diffs, want, tray };
+  }
+
+  // 检查失败时说人话
+  function why(lv, res, counts) {
+    if (lv.type === 'add') {
+      const d = res.diffs[0];
+      return d < 0 ? `还差 ${-d} 个，再放几个吧` : `多了 ${d} 个，点盘子里的 ${lv.item} 拿回来`;
+    }
+    if (res.tray > 0 && lv.type !== 'each') return `托盘里还有 ${res.tray} 个没分完`;
+    const more = [], less = [];
+    lv.who.forEach((w, i) => {
+      if (res.diffs[i] > 0) more.push(`${w}多了 ${res.diffs[i]} 个`);
+      if (res.diffs[i] < 0) less.push(`${w}还差 ${-res.diffs[i]} 个`);
+    });
+    if (hasBox(lv)) {
+      const d = res.diffs[lv.who.length];
+      if (d > 0) more.push(`🧺多了 ${d} 个`);
+      if (d < 0) less.push(`🧺还差 ${-d} 个`);
+    }
+    const all = less.concat(more);
+    if (!all.length) return '再看看哦';
+    return all.slice(0, 2).join('，');
+  }
+
+  function stars(lv, tries, takes) {
+    let s = 1;
+    if (tries === 0) s++;   // 一次就对
+    if (takes === 0) s++;   // 没有拿回来过
+    return s;
+  }
+
+  return { CH, LEVELS, n, share, rest, need, goal, hint, answer, hasBox, trayStart, check, why, stars };
+})();
+/* === FEN_GAME_END === */
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  /* ============== 动物头像：系统 emoji，画不出来就用备用图片 ============== */
+  // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
+  const Emo = (() => {
+    const FILES = {
+      '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
+      '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
+      '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
+      '🐘': '1f418', '🧑': '1f9d1', '🏠': '1f3e0', '⭐': '2b50', '🐵': '1f435', '🐹': '1f439',
+      '🍪': '1f36a', '🍎': '1f34e', '🥕': '1f955', '🍌': '1f34c', '🍬': '1f36c', '🍓': '1f353',
+      '🍇': '1f347', '🧺': '1f9fa', '✅': '2705',
+    };
+    const SPLIT = new RegExp('(' + Object.keys(FILES).join('|') + ')', 'u');
+    const src = (e) => 'icons/emoji/' + FILES[e] + '.png';
+    const imgs = new Map();
+    const forced = /[?&]emoji=img(?:&|$)/.test(location.search) || /MicroMessenger/i.test(navigator.userAgent);
+    const off = /[?&]emoji=text(?:&|$)/.test(location.search);
+    let detected = null;   // 这台设备能不能画 emoji（第一次用到时才测）
+    let loading = false;
+    let ready = null;
+    let gen = 0;
+
+    function canvasEmojiOk() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 32;
+        const x = c.getContext('2d');
+        x.textAlign = 'center';
+        x.textBaseline = 'middle';
+        // 画两个颜色鲜明的 emoji：都画不出彩色，就说明这台设备画不了
+        const check = (ch, test) => {
+          x.clearRect(0, 0, 32, 32);
+          x.font = '24px ' + EMOJI_FONT;
+          x.fillText(ch, 16, 17);
+          const d = x.getImageData(0, 0, 32, 32).data;
+          let n = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 100 && test(d[i], d[i + 1], d[i + 2])) n++;
+          return n >= 10;
+        };
+        return check('🦊', (r, g, b) => r - b > 60) || check('🐸', (r, g, b) => g - r > 30);
+      } catch (e) {
+        return true; // 读不了像素就当作正常
+      }
+    }
+
+    function useImg() {
+      if (off) return false;
+      if (forced) return true;
+      if (window.__picAnimals) return true;
+      if (detected === null) detected = canvasEmojiOk();
+      return !detected;
+    }
+
+    function preload(cb) {
+      if (cb) ready = cb;
+      if (!useImg() || loading) return;
+      loading = true;
+      let left = Object.keys(FILES).length;
+      for (const e of Object.keys(FILES)) {
+        const im = new Image();
+        im.onload = im.onerror = () => { if (--left === 0 && ready) ready(); };
+        im.src = src(e);
+        imgs.set(e, im);
+      }
+    }
+
+    // 在 canvas 上画：成功返回 true
+    function draw(x, e, cx, cy, size) {
+      if (!useImg()) return false;
+      preload();
+      const im = imgs.get(e);
+      if (!im || !im.complete || !im.naturalWidth) return false;
+      x.drawImage(im, cx - size / 2, cy - size / 2, size, size);
+      return true;
+    }
+
+    // 设置 DOM 文字，动物 emoji 换成图片
+    function text(el, str) {
+      str = String(str);
+      const on = useImg();
+      const key = (on ? 'i' + gen : 't') + str;
+      if (el.dataset.emo === key) return;
+      el.dataset.emo = key;
+      el.dataset.emoRaw = str;
+      if (!on) { el.textContent = str; return; }
+      preload();
+      el.textContent = '';
+      for (const part of str.split(SPLIT)) {
+        if (!part) continue;
+        if (FILES[part]) {
+          const im = document.createElement('img');
+          im.className = 'emo-img';
+          im.src = src(part);
+          im.alt = part;
+          im.draggable = false;
+          el.appendChild(im);
+        } else {
+          el.appendChild(document.createTextNode(part));
+        }
+      }
+    }
+
+    // 设置里切换之后重画
+    function refresh() {
+      gen++;
+      loading = false;
+      preload();
+      // 把已经画过的地方按新模式重画一遍
+      document.querySelectorAll('[data-emo-raw]').forEach((el) => text(el, el.dataset.emoRaw));
+    }
+
+    return { useImg, preload, draw, text, refresh, has: (e) => useImg() && !!FILES[e] };
+  })();
+
+  window.Emo = Emo;
+})();
+</script>
+
+<script>
+(() => {
+  'use strict';
+  const TEST = /[?&]test=1(?:&|$)/.test(location.search);
+  const INSTANT = TEST && !/[?&]anim=1(?:&|$)/.test(location.search);
+  const G = FenGame;
+  const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  const $ = (id) => document.getElementById(id);
+
+  /* ============== 存储 ============== */
+  const Store = (() => {
+    const KEY = 'kidsFen.v1';
+    const data = { stars: {}, sound: true, picAnimals: false, tutorialSeen: false, unlockAll: false };
+    try {
+      const o = JSON.parse(window.localStorage.getItem(KEY) || 'null');
+      if (o && typeof o === 'object') {
+        if (o.stars && typeof o.stars === 'object') {
+          for (const L of G.LEVELS) {
+            const v = o.stars[L.id];
+            if (Number.isInteger(v) && v >= 0 && v <= 3) data.stars[L.id] = v;
+          }
+        }
+        for (const k of ['sound', 'picAnimals', 'tutorialSeen', 'unlockAll']) if (typeof o[k] === 'boolean') data[k] = o[k];
+      }
+    } catch (e) { /* 忽略 */ }
+    const save = () => { try { window.localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 忽略 */ } };
+    return { data, save };
+  })();
+
+  /* ============== 声音 ============== */
+  const Sound = (() => {
+    let ctx = null, master = null;
+    function unlock() {
+      try {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.55;
+          master.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+      } catch (e) { ctx = null; }
+    }
+    function tone(freq, at, dur, type, vol, slideTo) {
+      const t0 = ctx.currentTime + at;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol, t0 + Math.min(0.03, dur / 3));
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+    function play(name, arg) {
+      if (!Store.data.sound || !ctx || INSTANT) return;
+      try {
+        if (ctx.state === 'suspended' && ctx.resume) ctx.resume();
+        switch (name) {
+          case 'give': tone(520 + Math.min(8, arg || 0) * 40, 0, 0.09, 'triangle', 0.18, 760); break;
+          case 'take': tone(520, 0, 0.1, 'triangle', 0.14, 300); break;
+          case 'ding': tone(1046, 0, 0.25, 'triangle', 0.16); tone(1568, 0.09, 0.35, 'triangle', 0.12); break;
+          case 'boop': tone(420, 0, 0.16, 'triangle', 0.14, 330); break;
+          case 'win':
+            [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, i === 3 ? 0.5 : 0.18, 'triangle', 0.2));
+            tone(1319, 0.5, 0.45, 'sine', 0.1);
+            break;
+        }
+      } catch (e) { /* 忽略 */ }
+    }
+    return { unlock, play };
+  })();
+
+  /* ============== 状态 ============== */
+  const S = { screen: 'menu', lv: null, counts: [], base: [], tray: 0, stack: [], tries: 0, takes: 0, done: false, tutStep: 0 };
+
+  const idx = (id) => G.LEVELS.findIndex((L) => L.id === id);
+  const unlocked = (i) => Store.data.unlockAll || i === 0 || (Store.data.stars[G.LEVELS[i - 1].id] || 0) > 0;
+  const totalStars = () => Object.values(Store.data.stars).reduce((a, b) => a + b, 0);
+  const plateCount = () => S.counts.length;
+
+  function mk(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  const emoEl = (tag, cls, text) => { const e = mk(tag, cls); Emo.text(e, text); return e; };
+
+  /* ============== 选关 ============== */
+  function renderMenu() {
+    $('starNum').textContent = totalStars();
+    $('btnSound').textContent = Store.data.sound ? '🔊 有声音' : '🔇 没声音';
+    const box = $('chapters');
+    box.textContent = '';
+    const firstOpen = G.LEVELS.findIndex((L, i) => unlocked(i) && !(Store.data.stars[L.id] > 0));
+    for (let ch = 1; ch <= 4; ch++) {
+      const C = G.CH[ch];
+      const levels = G.LEVELS.filter((L) => L.ch === ch);
+      const sec = mk('div', 'chapter');
+      const head = mk('div', 'chapter-head');
+      head.appendChild(emoEl('span', 'ch-name', `${C.emoji} 第${ch}章 ${C.name}`));
+      head.appendChild(mk('span', 'ch-desc', C.desc));
+      const got = levels.reduce((a, L) => a + (Store.data.stars[L.id] || 0), 0);
+      head.appendChild(mk('span', 'ch-stars', `⭐ ${got}/${levels.length * 3}`));
+      sec.appendChild(head);
+      const row = mk('div', 'levels');
+      for (const L of levels) {
+        const i = idx(L.id);
+        const open = unlocked(i);
+        const b = mk('button', 'lvl' + (open ? '' : ' locked') + (i === firstOpen ? ' next' : ''));
+        b.dataset.id = L.id;
+        b.appendChild(mk('div', 'l-id', L.id));
+        b.appendChild(mk('div', 'l-name', L.name));
+        const st = mk('div', 'l-stars');
+        if (open) {
+          const v = Store.data.stars[L.id] || 0;
+          for (let k = 1; k <= 3; k++) st.appendChild(mk('span', k <= v ? '' : 'off', '⭐'));
+        } else st.textContent = '🔒';
+        b.appendChild(st);
+        b.addEventListener('click', () => { if (unlocked(idx(L.id))) openLevel(L.id); else Sound.play('boop'); });
+        row.appendChild(b);
+      }
+      sec.appendChild(row);
+      box.appendChild(sec);
+    }
+  }
+
+  function showScreen(name) {
+    S.screen = name;
+    $('menu').classList.toggle('show', name === 'menu');
+    $('play').classList.toggle('show', name === 'play');
+    if (name === 'menu') renderMenu();
+  }
+
+  /* ============== 关卡 ============== */
+  function openLevel(id) {
+    const i = idx(id);
+    if (i < 0) return;
+    const lv = G.LEVELS[i];
+    S.lv = lv;
+    S.base = lv.who.map((_, k) => (lv.type === 'add' && k === 0 ? lv.start : 0));
+    if (G.hasBox(lv)) S.base.push(0);
+    S.counts = S.base.slice();
+    S.tray = G.trayStart(lv);
+    S.stack = [];
+    S.tries = 0;
+    S.takes = 0;
+    S.done = false;
+    hideOverlay('resultOv');
+    showScreen('play');
+    render();
+    setMsg('点小动物，给它一个吧', '');
+  }
+
+  function give(i) {
+    if (S.done || !S.lv) return 'done';
+    if (S.tray <= 0) { setMsg('托盘里没有啦', 'red'); Sound.play('boop'); return 'empty'; }
+    S.counts[i]++;
+    S.tray--;
+    S.stack.push(i);
+    Sound.play('give', S.counts[i]);
+    render();
+    return 'given';
+  }
+
+  function take(i) {
+    if (S.done || !S.lv) return 'done';
+    if (S.counts[i] <= S.base[i]) { Sound.play('boop'); return 'locked'; }
+    S.counts[i]--;
+    S.tray++;
+    S.takes++;
+    const k = S.stack.lastIndexOf(i);
+    if (k >= 0) S.stack.splice(k, 1);
+    Sound.play('take');
+    render();
+    return 'taken';
+  }
+
+  function undo() {
+    if (S.done || !S.stack.length) return;
+    take(S.stack[S.stack.length - 1]);
+  }
+
+  function reset() {
+    if (!S.lv) return;
+    S.counts = S.base.slice();
+    S.tray = G.trayStart(S.lv);
+    S.stack = [];
+    S.done = false;
+    Sound.play('take');
+    render();
+    setMsg('重新来，慢慢分', '');
+  }
+
+  function check() {
+    if (!S.lv || S.done) return null;
+    const res = G.check(S.lv, S.counts, S.tray);
+    if (res.ok) {
+      S.done = true;
+      const stars = G.stars(S.lv, S.tries, S.takes);
+      const prev = Store.data.stars[S.lv.id] || 0;
+      if (stars > prev) Store.data.stars[S.lv.id] = stars;
+      Store.save();
+      setMsg('🎉 分得对！', 'gold');
+      Sound.play('win');
+      render();
+      if (INSTANT) showResult(stars);
+      else setTimeout(() => showResult(stars), 700);
+    } else {
+      S.tries++;
+      setMsg('🤔 ' + G.why(S.lv, res, S.counts), 'red');
+      Sound.play('boop');
+      render(res);
+    }
+    return res;
+  }
+
+  function hint() {
+    if (!S.lv) return;
+    Sound.play('ding');
+    setMsg('💡 ' + G.hint(S.lv), 'gold');
+  }
+
+  /* ============== 画面 ============== */
+  function setMsg(text, kind) {
+    const el = $('msg');
+    el.className = 'msg' + (kind ? ' ' + kind : '');
+    Emo.text(el, text);
+    el.dataset.kind = kind || 'none';
+  }
+
+  function render(res) {
+    const lv = S.lv;
+    if (!lv) return;
+    $('lvTitle').textContent = `${G.CH[lv.ch].emoji} ${lv.id} ${lv.name}`;
+    $('goal').innerHTML = G.goal(lv).replace(/([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}])/gu, '<span class="ge">$1</span>');
+    document.querySelectorAll('#goal .ge').forEach((el) => Emo.text(el, el.textContent));
+    const box = $('plates');
+    box.textContent = '';
+    const names = lv.who.concat(G.hasBox(lv) ? ['🧺'] : []);
+    names.forEach((who, i) => {
+      const p = mk('div', 'plate' + (i >= lv.who.length ? ' box' : ''));
+      p.dataset.i = i;
+      p.appendChild(emoEl('div', 'who', who));
+      const dish = mk('div', 'dish');
+      for (let k = 0; k < S.counts[i]; k++) {
+        const it = emoEl('div', 'item' + (k < S.base[i] ? ' start' : ''), lv.item);
+        it.addEventListener('click', (e) => { e.stopPropagation(); take(i); });
+        dish.appendChild(it);
+      }
+      p.appendChild(dish);
+      const cnt = mk('div', 'cnt', String(S.counts[i]));
+      p.appendChild(cnt);
+      if (res && !res.ok) {
+        const d = res.diffs[i];
+        p.classList.add(d === 0 ? 'ok' : 'bad');
+        cnt.classList.add(d === 0 ? 'ok' : 'bad');
+        if (d !== 0) {
+          const fix = mk('div', 'fix ' + (d > 0 ? 'more' : 'less'), d > 0 ? `多 ${d}` : `差 ${-d}`);
+          p.appendChild(fix);
+        }
+      }
+      p.addEventListener('click', () => give(i));
+      box.appendChild(p);
+    });
+    const tray = $('tray');
+    tray.textContent = '';
+    tray.classList.toggle('empty', S.tray === 0);
+    for (let k = 0; k < S.tray; k++) tray.appendChild(emoEl('div', 'item', lv.item));
+    $('btnCheck').disabled = S.done;
+    $('btnCheck').classList.toggle('pulse', !S.done && S.tray === 0);
+  }
+
+  function showResult(stars) {
+    const lv = S.lv;
+    const st = $('rStars');
+    st.textContent = '';
+    for (let k = 1; k <= 3; k++) {
+      const s = mk('span', k <= stars ? '' : 'off', '⭐');
+      s.style.animationDelay = (k * 0.18) + 's';
+      st.appendChild(s);
+    }
+    Emo.text($('rEmo'), lv.who[0]);
+    const lines = $('rLines');
+    lines.textContent = '';
+    lines.appendChild(emoEl('div', '', G.hint(lv)));
+    lines.appendChild(mk('div', '', S.tries === 0 ? '✅ 一次就分对了' : `检查了 ${S.tries + 1} 次`));
+    lines.appendChild(mk('div', '', S.takes === 0 ? '✅ 一个都没拿回来' : `拿回来过 ${S.takes} 次`));
+    $('rNext').hidden = idx(lv.id) >= G.LEVELS.length - 1;
+    showOverlay('resultOv');
+    if (!INSTANT) confetti();
+  }
+
+  function confetti() {
+    const box = $('confetti');
+    box.textContent = '';
+    const colors = ['#ff8fb8', '#6bbfff', '#ffd24a', '#7ed9a6', '#c9a7ff', '#ffa45c'];
+    const W = window.innerWidth;
+    for (let i = 0; i < 60; i++) {
+      const p = mk('i');
+      if (i % 6 === 0) {
+        p.textContent = ['⭐', '🍪', '💖'][i % 3];
+        p.style.fontSize = 18 + Math.random() * 14 + 'px';
+        p.style.fontFamily = EMOJI_FONT;
+      } else {
+        p.style.width = 8 + Math.random() * 8 + 'px';
+        p.style.height = 10 + Math.random() * 10 + 'px';
+        p.style.background = colors[i % colors.length];
+      }
+      p.style.left = Math.random() * W + 'px';
+      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 900 - 450) + 'deg');
+      p.style.animationDuration = 2.2 + Math.random() * 1.8 + 's';
+      p.style.animationDelay = Math.random() * 0.5 + 's';
+      box.appendChild(p);
+    }
+    setTimeout(() => { box.textContent = ''; }, 4500);
+  }
+
+  /* ============== 弹层 ============== */
+  const showOverlay = (id) => $(id).classList.add('show');
+  const hideOverlay = (id) => $(id).classList.remove('show');
+
+  let tutBuilt = false;
+  function openTutorial() {
+    if (!tutBuilt) {
+      tutBuilt = true;
+      const row = (parts) => { const r = mk('div', 'demo-row'); parts.forEach((t) => r.appendChild(typeof t === 'string' && t.length > 3 ? mk('span', 'lbl', t) : emoEl('span', '', t))); return r; };
+      $('tutArt0').appendChild(row(['🐶', '👆', ' 点一下 ', '🍪']));
+      $('tutArt1').appendChild(row(['🍪🍪', '🐶', ' 一样多 ', '🐱', '🍪🍪']));
+      $('tutArt2').appendChild(row(['🍪', ' 点盘子里的可以拿回来 ', '↩️']));
+    }
+    S.tutStep = 0;
+    renderTutorial();
+    showOverlay('tutOv');
+  }
+  function renderTutorial() {
+    document.querySelectorAll('#tutOv .tut-step').forEach((s) => s.classList.toggle('show', Number(s.dataset.step) === S.tutStep));
+    document.querySelectorAll('#tutDots i').forEach((d, i) => d.classList.toggle('on', i === S.tutStep));
+    $('tutNext').textContent = S.tutStep < 2 ? '👉 下一步' : '🎮 开始玩！';
+  }
+
+  function renderSettings() {
+    document.querySelectorAll('#setOv .seg').forEach((seg) => {
+      const v = !!Store.data[seg.dataset.opt];
+      seg.querySelectorAll('button').forEach((b) => {
+        const isOn = b.dataset.v === '1';
+        b.classList.toggle('on', isOn === v);
+        b.classList.toggle('off-choice', !isOn);
+      });
+    });
+    $('btnUnlock').textContent = Store.data.unlockAll ? '🔒 恢复按顺序解锁' : '🔓 解锁全部关卡';
+  }
+
+  function setOption(name, value) {
+    const v = !!value && value !== '0';
+    Store.data[name] = v;
+    if (name === 'sound' && v) Sound.unlock();
+    if (name === 'picAnimals') { window.__picAnimals = v; Emo.refresh(); if (S.lv && S.screen === 'play') render(); renderMenu(); }
+    Store.save();
+    renderSettings();
+    if (S.screen === 'menu') renderMenu();
+  }
+
+  /* ============== 绑定 ============== */
+  function bind() {
+    const on = (id, fn) => $(id).addEventListener('click', fn);
+    on('btnHelp', openTutorial);
+    on('btnSettings', () => { renderSettings(); $('clearStep1').hidden = false; $('clearStep2').hidden = true; showOverlay('setOv'); });
+    on('btnSound', () => setOption('sound', !Store.data.sound));
+    on('btnLevels', () => showScreen('menu'));
+    on('btnCheck', check);
+    on('btnReset', reset);
+    on('btnHint', hint);
+    on('btnUndo', undo);
+    on('tutNext', () => {
+      if (S.tutStep < 2) { S.tutStep++; renderTutorial(); }
+      else { hideOverlay('tutOv'); Store.data.tutorialSeen = true; Store.save(); }
+    });
+    on('rNext', () => { const i = idx(S.lv.id); hideOverlay('resultOv'); if (i < G.LEVELS.length - 1) openLevel(G.LEVELS[i + 1].id); });
+    on('rAgain', () => { hideOverlay('resultOv'); openLevel(S.lv.id); });
+    on('rLevels', () => { hideOverlay('resultOv'); showScreen('menu'); });
+    document.querySelectorAll('#setOv .seg button').forEach((b) => b.addEventListener('click', () => setOption(b.parentElement.dataset.opt, b.dataset.v === '1')));
+    on('btnUnlock', () => { Store.data.unlockAll = !Store.data.unlockAll; Store.save(); renderSettings(); renderMenu(); });
+    on('btnClearStars', () => { $('clearStep1').hidden = true; $('clearStep2').hidden = false; });
+    on('btnClearNo', () => { $('clearStep1').hidden = false; $('clearStep2').hidden = true; });
+    on('btnClearYes', () => { Store.data.stars = {}; Store.save(); $('clearStep1').hidden = false; $('clearStep2').hidden = true; renderMenu(); });
+    on('setClose', () => hideOverlay('setOv'));
+    ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, Sound.unlock, { capture: true, passive: true }));
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('dblclick', (e) => e.preventDefault());
+  }
+
+  function getState() {
+    return {
+      screen: S.screen,
+      level: S.lv ? S.lv.id : null,
+      counts: S.counts.slice(),
+      tray: S.tray,
+      done: S.done,
+      tries: S.tries,
+      takes: S.takes,
+      msg: $('msg').textContent,
+      msgKind: $('msg').dataset.kind,
+      stars: Object.assign({}, Store.data.stars),
+      overlay: ['tutOv', 'resultOv', 'setOv'].filter((id) => $(id).classList.contains('show')),
+      emojiImages: Emo.useImg(),
+    };
+  }
+
+  function init() {
+    if (INSTANT) document.documentElement.classList.add('test-mode');
+    window.__picAnimals = Store.data.picAnimals;
+    bind();
+    renderSettings();
+    document.querySelectorAll('.title .emo').forEach((el) => { el.dataset.raw = el.dataset.raw || el.textContent; Emo.text(el, el.dataset.raw); });
+    Emo.preload(() => { if (S.screen === 'play' && S.lv) render(); renderMenu(); });
+    showScreen('menu');
+    if (!TEST && !Store.data.tutorialSeen) openTutorial();
+    if (!TEST && 'serviceWorker' in navigator && (location.protocol === 'https:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname))) {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* 忽略 */ });
+    }
+    if (TEST) {
+      window.__fen = {
+        G,
+        getState,
+        openLevel: (id) => { openLevel(id); return getState(); },
+        give: (i) => give(i),
+        take: (i) => take(i),
+        check: () => { check(); return getState(); },
+        reset: () => { reset(); return getState(); },
+        hint: () => { hint(); return getState(); },
+        setOption: (k, v) => { setOption(k, v); return getState(); },
+        unlockAll: (v) => { Store.data.unlockAll = !!v; Store.save(); renderMenu(); },
+        solve: () => { const want = G.answer(S.lv); want.forEach((w, i) => { while (S.counts[i] < w) give(i); }); return getState(); },
+      };
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

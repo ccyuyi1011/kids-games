@@ -1,16 +1,18 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v6';
+const CACHE = 'kids-games-v7';
 const ASSETS = [
   './kids.html',
   './tiaoqi.html',
   './doushouqi.html',
   './chess.html',
   './huijia.html',
+  './fendongxi.html',
   './kids.webmanifest',
   './tiaoqi.webmanifest',
   './doushouqi.webmanifest',
   './chess.webmanifest',
   './huijia.webmanifest',
+  './fen.webmanifest',
   './icons/wuziqi-180.png',
   './icons/wuziqi-192.png',
   './icons/wuziqi-512.png',
@@ -26,6 +28,9 @@ const ASSETS = [
   './icons/huijia-180.png',
   './icons/huijia-192.png',
   './icons/huijia-512.png',
+  './icons/fen-180.png',
+  './icons/fen-192.png',
+  './icons/fen-512.png',
   './icons/emoji/1f3e0.png',
   './icons/emoji/1f406.png',
   './icons/emoji/1f418.png',
@@ -48,6 +53,17 @@ const ASSETS = [
   './icons/emoji/1f998.png',
   './icons/emoji/1f9d1.png',
   './icons/emoji/2b50.png',
+  './icons/emoji/1f347.png',
+  './icons/emoji/1f34c.png',
+  './icons/emoji/1f34e.png',
+  './icons/emoji/1f353.png',
+  './icons/emoji/1f36a.png',
+  './icons/emoji/1f36c.png',
+  './icons/emoji/1f435.png',
+  './icons/emoji/1f439.png',
+  './icons/emoji/1f955.png',
+  './icons/emoji/1f9fa.png',
+  './icons/emoji/2705.png',
 ];
 
 self.addEventListener('install', (event) => {
