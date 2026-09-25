@@ -440,6 +440,13 @@
   .lv-head .chip2 .emo-img { width: 1em; height: 1em; vertical-align: -0.15em; }
   .lv-head .btn { min-height: 44px; font-size: 17px; padding: 0 12px; }
 
+  .mid { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+  .side-col { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+  @media (min-aspect-ratio: 1/1) and (min-width: 860px) {
+    .mid { flex-direction: row; justify-content: center; align-items: center; gap: 24px; }
+    .side-col { width: 320px; flex: 0 0 auto; }
+  }
+
   /* 迷宫 */
   .maze {
     display: grid;
@@ -451,6 +458,7 @@
   }
   .mc {
     position: relative;
+    font-size: inherit;
     background: none;
     padding: 0;
     border: 0 solid #b9874e;
@@ -480,7 +488,7 @@
     animation: nudge 0.9s ease-in-out infinite;
   }
   .mc .it { position: relative; z-index: 2; }
-  .mc .it .emo-img { width: 1em; height: 1em; vertical-align: middle; }
+  .mc .it .emo-img { width: 1.05em; height: 1.05em; vertical-align: middle; }
   .mc .me { z-index: 3; transition: transform 0.12s; }
   .mc .me.bump { animation: shakeIn 0.35s both; }
   .mc .got { animation: starUp 0.5s both; }
@@ -568,17 +576,21 @@
         <span class="chip2" id="chipStar" hidden>⭐ <b>0</b>/0</span>
         <button class="btn pink" id="btnLevels">🗺️ 选关</button>
       </div>
-      <div class="maze" id="maze"></div>
-      <div class="msg" id="msg">用下面的箭头走，也可以点旁边的格子</div>
-      <div class="pad" id="pad">
-        <button class="dir up" data-k="up">⬆️</button>
-        <button class="dir left" data-k="left">⬅️</button>
-        <button class="dir down" data-k="down">⬇️</button>
-        <button class="dir right" data-k="right">➡️</button>
-      </div>
-      <div class="ctrls">
-        <button class="btn yellow" id="btnHint">💡 提示</button>
-        <button class="btn" id="btnReset">🔄 重来</button>
+      <div class="mid">
+        <div class="maze" id="maze"></div>
+        <div class="side-col">
+          <div class="msg" id="msg">用下面的箭头走，也可以点旁边的格子</div>
+          <div class="pad" id="pad">
+            <button class="dir up" data-k="up">⬆️</button>
+            <button class="dir left" data-k="left">⬅️</button>
+            <button class="dir down" data-k="down">⬇️</button>
+            <button class="dir right" data-k="right">➡️</button>
+          </div>
+          <div class="ctrls">
+            <button class="btn yellow" id="btnHint">💡 提示</button>
+            <button class="btn" id="btnReset">🔄 重来</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1150,11 +1162,22 @@
   function sizeMaze() {
     const lv = S.lv;
     if (!lv) return 34;
-    const inner = $('play').querySelector('.play-inner');
-    const availW = Math.min(880, inner.clientWidth) - 16;
-    const used = $('pad').offsetHeight + $('msg').offsetHeight + $('lvTitle').parentElement.offsetHeight + $('btnHint').offsetHeight + 60;
-    const availH = Math.max(200, $('play').clientHeight - used);
-    return Math.max(24, Math.min(64, Math.floor(availW / lv.w), Math.floor(availH / lv.h)));
+    const play = $('play');
+    const inner = play.querySelector('.play-inner');
+    const wide = window.innerWidth >= 860 && window.innerWidth >= window.innerHeight;
+    const headH = $('lvTitle').parentElement.offsetHeight;
+    let availW, availH;
+    if (wide) {                       // 方向键在右边，迷宫可以用满高度
+      availW = Math.min(900, inner.clientWidth) - 320 - 40;
+      availH = play.clientHeight - headH - 30;
+    } else {
+      availW = Math.min(880, inner.clientWidth) - 16;
+      const used = $('pad').offsetHeight + $('msg').offsetHeight + headH + $('btnHint').offsetHeight + 70;
+      availH = play.clientHeight - used;
+    }
+    availW = Math.max(200, availW);
+    availH = Math.max(200, availH);
+    return Math.max(24, Math.min(72, Math.floor(availW / lv.w), Math.floor(availH / lv.h)));
   }
 
   function build() {
@@ -1180,7 +1203,7 @@
     const m = $('maze');
     m.style.gridTemplateColumns = `repeat(${S.lv.w}, ${cs}px)`;
     m.style.gridTemplateRows = `repeat(${S.lv.h}, ${cs}px)`;
-    m.style.fontSize = Math.round(cs * 0.64) + 'px';
+    m.style.fontSize = Math.round(cs * 0.74) + 'px';
   }
 
   function cellAt(x, y) { return $('maze').children[y * S.lv.w + x]; }

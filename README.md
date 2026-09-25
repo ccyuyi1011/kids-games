@@ -26,5 +26,5 @@
 
 ## 更新游戏
 
-改完页面后，把 `sw.js` 里的 `CACHE` 版本号加一（比如 `kids-games-v11` 改成 `kids-games-v12`）再发布。
+改完页面后，把 `sw.js` 里的 `CACHE` 版本号加一（比如 `kids-games-v12` 改成 `kids-games-v13`）再发布。
 iPad 联网打开一次后，下一次打开就是新版本。
