@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v11';
+const CACHE = 'kids-games-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,9 @@ const ASSETS = [
   './tianping.html',
   './shuzhou.html',
   './qiang21.html',
+  './migong.html',
+  './shudu.html',
+  './clock.html',
   './kids.webmanifest',
   './tiaoqi.webmanifest',
   './doushouqi.webmanifest',
@@ -27,6 +30,9 @@ const ASSETS = [
   './tianping.webmanifest',
   './shuzhou.webmanifest',
   './qiang21.webmanifest',
+  './migong.webmanifest',
+  './shudu.webmanifest',
+  './clock.webmanifest',
   './icons/wuziqi-180.png',
   './icons/wuziqi-192.png',
   './icons/wuziqi-512.png',
@@ -57,6 +63,15 @@ const ASSETS = [
   './icons/qiang21-180.png',
   './icons/qiang21-192.png',
   './icons/qiang21-512.png',
+  './icons/migong-180.png',
+  './icons/migong-192.png',
+  './icons/migong-512.png',
+  './icons/shudu-180.png',
+  './icons/shudu-192.png',
+  './icons/shudu-512.png',
+  './icons/clock-180.png',
+  './icons/clock-192.png',
+  './icons/clock-512.png',
   './icons/emoji/1f3e0.png',
   './icons/emoji/1f406.png',
   './icons/emoji/1f418.png',

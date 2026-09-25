@@ -1,0 +1,16 @@
+{
+  "name": "动物数独",
+  "short_name": "动物数独",
+  "id": "./shudu.html",
+  "start_url": "./shudu.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#fdf0ff",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/shudu-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/shudu-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
