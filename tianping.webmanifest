@@ -1,0 +1,16 @@
+{
+  "name": "天平称一称",
+  "short_name": "天平称一称",
+  "id": "./tianping.html",
+  "start_url": "./tianping.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#eaf7ff",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/tianping-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/tianping-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

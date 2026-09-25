@@ -1,0 +1,16 @@
+{
+  "name": "抢 21",
+  "short_name": "抢 21",
+  "id": "./qiang21.html",
+  "start_url": "./qiang21.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff5e1",
+  "theme_color": "#fff0e6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/qiang21-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/qiang21-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
