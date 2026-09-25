@@ -1,6 +1,12 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v7';
+const CACHE = 'kids-games-v8';
 const ASSETS = [
+  './',
+  './index.html',
+  './all.webmanifest',
+  './icons/all-180.png',
+  './icons/all-192.png',
+  './icons/all-512.png',
   './kids.html',
   './tiaoqi.html',
   './doushouqi.html',

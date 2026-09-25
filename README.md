@@ -8,11 +8,12 @@
 - `chess.html`：国际象棋乐园
 - `huijia.html`：小动物回家（积木编程闯关）
 - `fendongxi.html`：分东西（数学闯关）
-- `index.html`：最早的五子棋版本
+- `index.html`：总入口（六个游戏的选择页）
+- `wuziqi-jiuban.html`：最早的五子棋版本
 
 ## 装到 iPad 上
 
-1. 用 iPad 的 Safari 打开 `.../kids.html`、`.../tiaoqi.html`、`.../doushouqi.html`、`.../chess.html`、`.../huijia.html` 或 `.../fendongxi.html`
+1. 用 iPad 的 Safari 打开总入口 `.../`（或单个游戏） `.../kids.html`、`.../tiaoqi.html`、`.../doushouqi.html`、`.../chess.html`、`.../huijia.html` 或 `.../fendongxi.html`
 2. 点分享按钮 → **添加到主屏幕**
 3. 以后点主屏幕上的图标就能全屏玩，没网也能玩
 
