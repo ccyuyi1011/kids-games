@@ -645,6 +645,8 @@
     { emoji: '🧩', name: '几个一组', desc: '三个一组，一直重复' },
     { emoji: '📈', name: '越来越多', desc: '每次多一个' },
     { emoji: '🔢', name: '数字规律', desc: '看看数是怎么变的' },
+    { emoji: '🧠', name: '难一点', desc: '四个一组、两个两个、先多后少' },
+    { emoji: '🚀', name: '数字高手', desc: '跳着数，越加越多' },
   ];
 
   // 元素写法：'🍎' 表情 / '#red' 彩色圆点 / '=7' 数字 / '*3' 三颗星
@@ -673,6 +675,18 @@
     { id: '4-3', ch: 4, name: '单数', kind: 'num', from: 1, step: 2, len: 6, blank: 5, opts: ['=11', '=9', '=10', '=12'] },
     { id: '4-4', ch: 4, name: '倒着数', kind: 'num', from: 10, step: -1, len: 6, blank: 4, opts: ['=6', '=7', '=5', '=4'] },
     { id: '4-5', ch: 4, name: '中间空了', kind: 'num', from: 5, step: 5, len: 5, blank: 2, opts: ['=15', '=10', '=20', '=12'] },
+
+    { id: '5-1', ch: 5, name: '四个一组', kind: 'rep', unit: ['🍎', '🍌', '🍓', '🍪'], len: 7, blank: 6, opts: ['🍓', '🍎', '🍌', '🍪'] },
+    { id: '5-2', ch: 5, name: '两个两个', kind: 'rep', unit: ['🐰', '🐰', '🐱', '🐱'], len: 8, blank: 7, opts: ['🐱', '🐰', '🐻', '🐼'] },
+    { id: '5-3', ch: 5, name: '红红蓝黄', kind: 'rep', unit: ['#red', '#red', '#blue', '#yellow'], len: 8, blank: 5, opts: ['#red', '#blue', '#yellow', '#green'] },
+    { id: '5-4', ch: 5, name: '先多后少', kind: 'wave', item: '⭐', peak: 4, blank: 5, opts: ['*2', '*3', '*1', '*4'] },
+    { id: '5-5', ch: 5, name: '中间空了', kind: 'rep', unit: ['🐻', '🐻', '🐼', '🐼'], len: 8, blank: 5, opts: ['🐼', '🐻', '🐸', '🐱'] },
+
+    { id: '6-1', ch: 6, name: '三个三个数', kind: 'num', from: 3, step: 3, len: 5, blank: 4, opts: ['=15', '=14', '=16', '=13'] },
+    { id: '6-2', ch: 6, name: '五个五个数', kind: 'num', from: 5, step: 5, len: 6, blank: 5, opts: ['=30', '=25', '=35', '=28'] },
+    { id: '6-3', ch: 6, name: '倒着双数', kind: 'num', from: 20, step: -2, len: 6, blank: 5, opts: ['=10', '=12', '=8', '=11'] },
+    { id: '6-4', ch: 6, name: '越加越多', kind: 'grow', from: 1, d0: 1, len: 5, blank: 4, opts: ['=11', '=10', '=12', '=9'] },
+    { id: '6-5', ch: 6, name: '中间空了', kind: 'num', from: 2, step: 3, len: 5, blank: 3, opts: ['=11', '=10', '=12', '=13'] },
   ];
 
   // 展开成一整排
@@ -682,6 +696,12 @@
       for (let i = 0; i < lv.len; i++) out.push(lv.unit[i % lv.unit.length]);
     } else if (lv.kind === 'step') {
       for (let i = 0; i < lv.len; i++) out.push('*' + (lv.from + lv.step * i));
+    } else if (lv.kind === 'wave') {
+      for (let v = 1; v <= lv.peak; v++) out.push('*' + v);
+      for (let v = lv.peak - 1; v >= 1; v--) out.push('*' + v);
+    } else if (lv.kind === 'grow') {
+      let v = lv.from, d = lv.d0;
+      for (let i = 0; i < lv.len; i++) { out.push('=' + v); v += d; d++; }
     } else {
       for (let i = 0; i < lv.len; i++) out.push('=' + (lv.from + lv.step * i));
     }
@@ -712,8 +732,10 @@
   }
   const answer = (lv) => opts(lv).indexOf(right(lv));
 
+  const length = (lv) => seq(lv).length;
+
   function goal(lv) {
-    return lv.blank === lv.len - 1 ? '接下来是什么？' : '中间少了什么？';
+    return lv.blank === length(lv) - 1 ? '接下来是什么？' : '中间少了什么？';
   }
 
   function hint(lv) {
@@ -724,6 +746,8 @@
     if (lv.kind === 'step') {
       return lv.step > 0 ? `每次多 ${lv.step} 个，数数前一个有几个` : `每次少 ${-lv.step} 个`;
     }
+    if (lv.kind === 'wave') return '先越来越多，到了最多又越来越少';
+    if (lv.kind === 'grow') return '每次加的数都比上次大 1：加 1、加 2、加 3……';
     return lv.step > 0 ? `每次加 ${lv.step}` : `每次减 ${-lv.step}`;
   }
 
@@ -733,7 +757,7 @@
     return wrongs === 0 ? 2 : 1;
   }
 
-  window.PatternGame = { CH, LEVELS, seq, right, opts, answer, goal, hint, stars };
+  window.PatternGame = { CH, LEVELS, seq, length, right, opts, answer, goal, hint, stars };
 })();
 </script>
 
@@ -754,6 +778,7 @@
       '🙋': '1f64b', '👧': '1f467', '🏆': '1f3c6', '⚖️': '2696', '🎴': '1f3b4',
       '❌': '274c', '❓': '2753', '🧩': '1f9e9', '⏰': '23f0', '🔎': '1f50e',
       '🔁': '1f501', '🌰': '1f330', '🏘️': '1f3d8', '🕵️': '1f575', '📈': '1f4c8', '🔢': '1f522',
+      '🧠': '1f9e0', '🚀': '1f680',
     };
     const SPLIT = new RegExp('(' + Object.keys(FILES).join('|') + ')', 'u');
     const src = (e) => 'icons/emoji/' + FILES[e] + '.png';
@@ -974,7 +999,8 @@
     const box = $('chapters');
     box.textContent = '';
     const firstOpen = G.LEVELS.findIndex((L, i) => unlocked(i) && !(Store.data.stars[L.id] > 0));
-    for (let ch = 1; ch <= 4; ch++) {
+    const chapters = Math.max(...G.LEVELS.map((L) => L.ch));
+    for (let ch = 1; ch <= chapters; ch++) {
       const C = G.CH[ch];
       const levels = G.LEVELS.filter((L) => L.ch === ch);
       const sec = mk('div', 'chapter');

@@ -1,5 +1,5 @@
 // 离线缓存：先用缓存马上打开游戏，同时在后台取新版本，下次打开就是新的
-const CACHE = 'kids-games-v14';
+const CACHE = 'kids-games-v15';
 const ASSETS = [
   './',
   './index.html',
@@ -109,6 +109,8 @@ const ASSETS = [
   './icons/emoji/1f998.png',
   './icons/emoji/1f9d1.png',
   './icons/emoji/2b50.png',
+  './icons/emoji/1f680.png',
+  './icons/emoji/1f9e0.png',
   './icons/emoji/1f330.png',
   './icons/emoji/1f3d8.png',
   './icons/emoji/1f4c8.png',
