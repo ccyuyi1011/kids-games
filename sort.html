@@ -485,12 +485,40 @@
     line-height: 1;
     touch-action: none;
     cursor: grab;
-    transition: transform 0.28s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.28s;
   }
   .item .emo-img { width: 1em; height: 1em; pointer-events: none; }
   .item.drag { transition: none; cursor: grabbing; box-shadow: 0 18px 40px rgba(120, 90, 60, 0.3); }
   .item.pop { animation: popBanner 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  .item.no { animation: shakeIn 0.45s both; }
+  .bin.catch .b-emo { animation: gulp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes gulp { 0% { transform: scale(1); } 40% { transform: scale(1.25, 0.82); } 100% { transform: scale(1); } }
+
+  /* 示范拖动的小手和影子 */
+  .ghost, .hand {
+    position: fixed;
+    left: 0; top: 0;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0;
+    font-family: var(--emoji);
+    line-height: 1;
+  }
+  .ghost { display: grid; place-items: center; border-radius: 30px; background: rgba(255, 255, 255, 0.75); border: 4px dashed #ffc06a; }
+  .ghost .emo-img, .hand .emo-img { width: 1em; height: 1em; }
+  .hand { font-size: 64px; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25)); }
+
+  .demo-drag { position: relative; width: 300px; height: 104px; margin: 0 auto; font-family: var(--emoji); line-height: 1; }
+  .demo-drag .d-pig { position: absolute; right: 0; top: 12px; font-size: 66px; }
+  .demo-drag .d-move { position: absolute; left: 0; top: 14px; animation: demoDrag 2.6s ease-in-out infinite; }
+  .demo-drag .d-item { font-size: 56px; }
+  .demo-drag .d-hand { position: absolute; left: 30px; top: 36px; font-size: 42px; }
+  .demo-drag .emo-img { width: 1em; height: 1em; }
+  @keyframes demoDrag {
+    0% { transform: translateX(0); opacity: 0; }
+    12% { transform: translateX(0); opacity: 1; }
+    62% { transform: translateX(196px); opacity: 1; }
+    78% { transform: translateX(196px) scale(0.4); opacity: 0; }
+    100% { transform: translateX(0); opacity: 0; }
+  }
   .item-name { display: flex; align-items: center; gap: 8px; font-size: 32px; font-weight: 900; color: #3f3a36; }
   .say-btn {
     width: 46px; height: 46px; border-radius: 50%;
@@ -621,6 +649,7 @@
         <button class="btn pink" id="btnMenu">🏠 Menu</button>
         <span class="chip2" id="chipOops">Oops: <b>0</b></span>
         <span class="spacer"></span>
+        <button class="btn blue" id="btnMute">🔊</button>
         <button class="btn" id="btnAgain">🔄 Restart</button>
       </div>
       <div class="stage" id="stage">
@@ -630,6 +659,8 @@
       </div>
       <div class="bins" id="bins"></div>
     </div>
+    <div class="ghost" id="ghost"></div>
+    <div class="hand" id="hand">👆</div>
   </section>
 </div>
 
@@ -642,7 +673,7 @@
     </div>
     <div class="tut-step" data-step="1">
       <div class="tut-art" id="tutArt1"></div>
-      <div class="tut-text">Pip eats food scraps. Penny takes recycling. Rocky takes trash.</div>
+      <div class="tut-text">Compost goes to Pip. Recycling goes to Penny. Landfill goes to Rocky.</div>
       <div class="tut-small">Look at the picture and think!</div>
     </div>
     <div class="tut-step" data-step="2">
@@ -708,9 +739,9 @@
 
   // 三个大类，各由一只小动物负责；pitch 是它说话的音调
   const CATS = [
-    { id: 'food', animal: '🐷', name: 'Pip the Pig', short: 'Pip', label: 'Food Scraps', icon: '🍂', pitch: 0.75 },
+    { id: 'food', animal: '🐷', name: 'Pip the Pig', short: 'Pip', label: 'Compost', icon: '🍂', pitch: 0.75 },
     { id: 'recycle', animal: '🐧', name: 'Penny the Penguin', short: 'Penny', label: 'Recycling', icon: '♻️', pitch: 1.45 },
-    { id: 'trash', animal: '🦝', name: 'Rocky the Raccoon', short: 'Rocky', label: 'Trash', icon: '🗑️', pitch: 1.05 },
+    { id: 'trash', animal: '🦝', name: 'Rocky the Raccoon', short: 'Rocky', label: 'Landfill', icon: '🗑️', pitch: 1.05 },
   ];
 
   // it：放进句子里时的说法（Give ___ to Pip!）
@@ -752,7 +783,7 @@
     right: {
       food: ['Yum! Thank you!', 'Yummy! Food for the soil!', 'Oink oink! I love it!'],
       recycle: ['Great! I can recycle it!', 'Thank you! It can be new again!', 'Yay! Recycling!'],
-      trash: ['Thanks! That is trash.', 'Got it! Into the trash!', 'Nice! That one is mine!'],
+      trash: ['Thanks! That goes to the landfill.', 'Got it! Off to the landfill!', 'Nice! That one is mine!'],
     },
     fullNow: 'Hooray! I have five stars!',
     already: 'Thank you! I already have five stars!',
@@ -793,7 +824,7 @@
   // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
   const Emo = (() => {
     const FILES = {
-      '🥫': '1f96b', '📰': '1f4f0', '📦': '1f4e6', '🍾': '1f37e', '🫙': '1fad9', '📄': '1f4c4', '✉️': '2709', '🧴': '1f9f4', '📒': '1f4d2', '🥚': '1f95a', '🍂': '1f342', '🍞': '1f35e', '🍊': '1f34a', '🥦': '1f966', '🥀': '1f940', '🌽': '1f33d', '🪥': '1faa5', '🧽': '1f9fd', '🩹': '1fa79', '🥤': '1f964', '🎈': '1f388', '🖍️': '1f58d', '🛍️': '1f6cd', '🧸': '1f9f8', '🦝': '1f99d', '♻️': '267b', '🗑️': '1f5d1', '🔊': '1f50a', '👉': '1f449',
+      '🥫': '1f96b', '📰': '1f4f0', '📦': '1f4e6', '🍾': '1f37e', '🫙': '1fad9', '📄': '1f4c4', '✉️': '2709', '🧴': '1f9f4', '📒': '1f4d2', '🥚': '1f95a', '🍂': '1f342', '🍞': '1f35e', '🍊': '1f34a', '🥦': '1f966', '🥀': '1f940', '🌽': '1f33d', '🪥': '1faa5', '🧽': '1f9fd', '🩹': '1fa79', '🥤': '1f964', '🎈': '1f388', '🖍️': '1f58d', '🛍️': '1f6cd', '🧸': '1f9f8', '🦝': '1f99d', '♻️': '267b', '🗑️': '1f5d1', '🔊': '1f50a', '👉': '1f449', '👆': '1f446',
       '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
       '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
       '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
@@ -1047,10 +1078,26 @@
   const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const wait = (ms) => new Promise((r) => setTimeout(r, INSTANT ? 0 : ms));
 
+  /* ============== 总开关：音效和说话一起管 ============== */
+  const anySound = () => Store.data.sound || Store.data.voice;
+  function renderMute() {
+    $('btnSound').textContent = anySound() ? '🔊 Sound On' : '🔇 Sound Off';
+    $('btnMute').textContent = anySound() ? '🔊' : '🔇';
+  }
+  function toggleAllSound() {
+    const on = !anySound();
+    Store.data.sound = on;
+    Store.data.voice = on;
+    if (on) Sound.unlock(); else Voice.stop();
+    Store.save();
+    renderMute();
+    renderSettings();
+  }
+
   /* ============== 菜单 ============== */
   function renderMenu() {
     $('starNum').textContent = Store.data.stars;
-    $('btnSound').textContent = Store.data.sound ? '🔊 Sound On' : '🔇 Sound Off';
+    renderMute();
     const crew = $('crew');
     crew.textContent = '';
     for (const c of G.CATS) {
@@ -1077,7 +1124,7 @@
     S.screen = name;
     $('menu').classList.toggle('show', name === 'menu');
     $('play').classList.toggle('show', name === 'play');
-    if (name === 'menu') { Voice.stop(); renderMenu(); }
+    if (name === 'menu') { Voice.stop(); cancelHint(); renderMenu(); }
   }
 
   /* ============== 一局 ============== */
@@ -1129,18 +1176,20 @@
     showItem(it);
     if (first) {
       Voice.say(`${G.LINES.start} ${it.name}!`, 1);
+      if (Store.data.plays < 3) { clearTimeout(hintTimer); hintTimer = setTimeout(() => showHint(true), INSTANT ? 0 : 900); return; }
     } else {
       Voice.say(it.name, 1);
     }
+    armIdleHint();
   }
 
   function showItem(it) {
     S.item = it;
     S.lastE = it.e;
     const el = $('item');
+    if (el.getAnimations) el.getAnimations().forEach((a) => a.cancel());
     el.style.transform = '';
     el.style.opacity = '';
-    el.classList.remove('no');
     Emo.text(el, it.e);
     el.classList.remove('pop');
     void el.offsetWidth;
@@ -1201,27 +1250,67 @@
   }
 
   /* ============== 给动物 ============== */
+  // 东西现在相对原位置挪了多少（拖动时会挪）
+  function offsetOf(el) {
+    const m = /translate\(\s*(-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(el.style.transform || '');
+    return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : { x: 0, y: 0 };
+  }
+
+  // 用 Web Animations 播一段，播完把最后一帧写回 style
+  function play(el, frames, ms) {
+    const last = frames[frames.length - 1];
+    const commit = () => {
+      if (last.transform !== undefined) el.style.transform = last.transform;
+      if (last.opacity !== undefined) el.style.opacity = String(last.opacity);
+    };
+    if (INSTANT || !el.animate) { commit(); return Promise.resolve(); }
+    return new Promise((res) => {
+      let done = false;
+      const finish = () => { if (done) return; done = true; commit(); try { a.cancel(); } catch (e) { /* 忽略 */ } res(); };
+      const a = el.animate(frames, { duration: ms, easing: 'cubic-bezier(0.4, 0, 0.25, 1)', fill: 'forwards' });
+      a.onfinish = finish;
+      a.oncancel = () => { if (!done) { done = true; res(); } };
+      setTimeout(finish, ms + 250);   // 页面切到后台时动画会停，别让游戏卡住
+    });
+  }
+
+  // 从现在的位置画一道弧线飞到某只动物脸上
+  function flightTo(catId, endScale) {
+    const el = $('item');
+    const cur = offsetOf(el);
+    const r = el.getBoundingClientRect();
+    const baseX = r.left + r.width / 2 - cur.x, baseY = r.top + r.height / 2 - cur.y;
+    const t = binOf(catId).querySelector('.b-emo').getBoundingClientRect();
+    const dx = t.left + t.width / 2 - baseX, dy = t.top + t.height / 2 - baseY;
+    const mx = (cur.x + dx) / 2, my = Math.min(cur.y, dy) - 70;
+    return [
+      { transform: `translate(${cur.x}px, ${cur.y}px) scale(1)` },
+      { transform: `translate(${mx}px, ${my}px) scale(0.85)`, offset: 0.45 },
+      { transform: `translate(${dx}px, ${dy}px) scale(${endScale})` },
+    ];
+  }
+
   async function give(catId) {
     if (S.screen !== 'play' || S.done || S.busy || !S.item) return 'busy';
+    cancelHint();
     const it = S.item;
     const r = G.apply(S.score, catId, it);
     S.score = r.score;
     S.given++;
+    S.busy = true;
     const b = binOf(catId);
     const itemEl = $('item');
+    itemEl.classList.remove('drag');
+
+    // 先飞过去
+    const path = flightTo(catId, r.ok ? 0.3 : 0.6);
+    await play(itemEl, path, 560);
 
     if (r.ok) {
-      S.busy = true;
-      // 东西飞进动物怀里
-      const a = itemEl.getBoundingClientRect(), t = b.getBoundingClientRect();
-      const dx = t.left + t.width / 2 - (a.left + a.width / 2);
-      const dy = t.top + t.height * 0.42 - (a.top + a.height / 2);
-      itemEl.classList.remove('drag');
-      itemEl.style.transform = `translate(${dx}px, ${dy}px) scale(0.25)`;
       itemEl.style.opacity = '0';
-      b.classList.remove('happy', 'sad');
+      b.classList.remove('happy', 'sad', 'catch');
       void b.offsetWidth;
-      b.classList.add('happy');
+      b.classList.add('catch', 'happy');
       let line;
       if (r.before >= G.GOAL) line = G.LINES.already;
       else if (r.after >= G.GOAL) line = G.LINES.fullNow;
@@ -1229,28 +1318,96 @@
       Sound.play(r.after >= G.GOAL && r.before < G.GOAL ? 'full' : 'right');
       renderBins(catId, r.after > r.before ? 'up' : '');
       speak(catId, line, 'good');
-      if (G.won(S.score)) { await wait(900); win(); return 'win'; }
-      await wait(1500);
+      if (G.won(S.score)) { await wait(800); win(); return 'win'; }
+      await wait(1300);
       S.busy = false;
       if (S.screen === 'play' && !S.done) nextItem(false);
       return 'right';
     }
 
-    // 错了：扣分，东西弹回来，再给一次
+    // 错了：扣分，被推回来，再给一次
     S.oops++;
     $('chipOops').querySelector('b').textContent = S.oops;
-    b.classList.remove('happy', 'sad');
+    b.classList.remove('happy', 'sad', 'catch');
     void b.offsetWidth;
     b.classList.add('sad');
     Sound.play('wrong');
     renderBins(catId, r.after < r.before ? 'down' : '');
     speak(catId, G.wrongLine(it), 'bad');
-    itemEl.classList.remove('drag');
+    const back = path[path.length - 1].transform;
+    await play(itemEl, [
+      { transform: back },
+      { transform: 'translate(0px, -30px) scale(1.05)', offset: 0.6 },
+      { transform: 'translate(0px, 0px) scale(1)' },
+    ], 520);
     itemEl.style.transform = '';
-    itemEl.classList.remove('no');
-    void itemEl.offsetWidth;
-    itemEl.classList.add('no');
+    S.busy = false;
+    armIdleHint();
     return 'wrong';
+  }
+
+  /* ============== 示范拖动的小手 ============== */
+  let hintTimer = null;
+  let hintAnims = [];
+
+  function cancelHint() {
+    clearTimeout(hintTimer);
+    hintAnims.forEach((a) => { try { a.cancel(); } catch (e) { /* 忽略 */ } });
+    hintAnims = [];
+    $('ghost').style.opacity = '0';
+    $('hand').style.opacity = '0';
+  }
+
+  // 一段时间没动，就提示一下怎么拖（只指方向，不告诉答案）
+  function armIdleHint() {
+    clearTimeout(hintTimer);
+    if (INSTANT) return;
+    hintTimer = setTimeout(() => showHint(false), 8000);
+  }
+
+  // toAnswer：一路拖到正确的动物身上（开局示范用）；否则只往动物那边拖一段
+  function showHint(toAnswer) {
+    if (INSTANT || S.busy || S.done || !S.item || S.screen !== 'play') return;
+    const g = $('ghost'), h = $('hand');
+    if (!g.animate) return;
+    cancelHint();
+    const r = $('item').getBoundingClientRect();
+    const sx = r.left + r.width / 2, sy = r.top + r.height / 2;
+    let tx, ty;
+    if (toAnswer) {
+      const t = binOf(S.item.cat).querySelector('.b-emo').getBoundingClientRect();
+      tx = t.left + t.width / 2; ty = t.top + t.height / 2;
+    } else {
+      const t = $('bins').getBoundingClientRect();
+      tx = sx; ty = t.top - 10;
+    }
+    const dx = tx - sx, dy = ty - sy;
+    Emo.text(g, S.item.e);
+    g.style.width = r.width + 'px';
+    g.style.height = r.height + 'px';
+    g.style.fontSize = getComputedStyle($('item')).fontSize;
+    g.style.left = (sx - r.width / 2) + 'px';
+    g.style.top = (sy - r.height / 2) + 'px';
+    Emo.text(h, '👆');
+    h.style.left = (sx - 16) + 'px';
+    h.style.top = (sy + 4) + 'px';
+    const endScale = toAnswer ? 0.32 : 0.8;
+    const opts = { duration: 2000, iterations: 2, easing: 'ease-in-out' };
+    hintAnims = [
+      g.animate([
+        { transform: 'translate(0px, 0px) scale(1)', opacity: 0 },
+        { transform: 'translate(0px, 0px) scale(1)', opacity: 0.85, offset: 0.15 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${endScale})`, opacity: 0.85, offset: 0.75 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${endScale})`, opacity: 0 },
+      ], opts),
+      h.animate([
+        { transform: 'translate(0px, 0px) scale(1.25)', opacity: 0 },
+        { transform: 'translate(0px, 0px) scale(1)', opacity: 1, offset: 0.15 },
+        { transform: `translate(${dx}px, ${dy}px) scale(1)`, opacity: 1, offset: 0.75 },
+        { transform: `translate(${dx}px, ${dy}px) scale(1.2)`, opacity: 0 },
+      ], opts),
+    ];
+    hintAnims[1].onfinish = () => { hintAnims = []; armIdleHint(); };
   }
 
   /* ============== 拖动 ============== */
@@ -1268,6 +1425,7 @@
   function bindDrag() {
     const el = $('item');
     el.addEventListener('pointerdown', (e) => {
+      cancelHint();
       if (S.busy || S.done || !S.item) return;
       drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY };
       dragMoved = false;
@@ -1291,8 +1449,10 @@
       if (over) { give(over); }
       else {
         el.classList.remove('drag');
-        el.style.transform = '';
+        const cur = el.style.transform || 'translate(0px, 0px)';
+        play(el, [{ transform: cur }, { transform: 'translate(0px, 0px) scale(1)' }], 280).then(() => { el.style.transform = ''; });
         if (!dragMoved) { Voice.say(S.item.name, 1); }   // 点一下东西就再念一遍名字
+        armIdleHint();
       }
       setTimeout(() => { dragMoved = false; }, 0);
     };
@@ -1308,6 +1468,7 @@
 
   /* ============== 胜利 ============== */
   function win() {
+    cancelHint();
     S.done = true;
     S.busy = false;
     const secs = Math.round((Date.now() - S.t0) / 1000);
@@ -1378,7 +1539,13 @@
         parts.forEach((t) => r.appendChild(t.length > 3 ? mk('span', 'lbl', t) : emoEl('span', '', t)));
         return r;
       };
-      $('tutArt0').appendChild(row(['🍌', '👉', '🐷']));
+      const demo = mk('div', 'demo-drag');
+      const mv = mk('div', 'd-move');
+      mv.appendChild(emoEl('span', 'd-item', '🍌'));
+      mv.appendChild(emoEl('span', 'd-hand', '👆'));
+      demo.appendChild(mv);
+      demo.appendChild(emoEl('span', 'd-pig', '🐷'));
+      $('tutArt0').appendChild(demo);
       $('tutArt1').appendChild(row(['🐷', '🍎', '🐧', '♻️', '🦝', '🗑️']));
       $('tutArt2').appendChild(row(['⭐', '⭐', '⭐', '⭐', '⭐', ' x 3 = win! ']));
     }
@@ -1417,6 +1584,7 @@
     }
     Store.save();
     renderSettings();
+    renderMute();
     if (S.screen === 'menu') renderMenu();
   }
 
@@ -1426,7 +1594,8 @@
     on('btnPlay', start);
     on('btnHelp', openTutorial);
     on('btnSettings', () => { renderSettings(); $('clearStep1').hidden = false; $('clearStep2').hidden = true; showOverlay('setOv'); });
-    on('btnSound', () => setOption('sound', !Store.data.sound));
+    on('btnSound', toggleAllSound);
+    on('btnMute', toggleAllSound);
     on('btnMenu', () => showScreen('menu'));
     on('btnAgain', start);
     on('btnSay', () => { if (S.item) Voice.say(S.item.name, 1); });
@@ -1491,6 +1660,8 @@
         getState,
         start: () => { start(); return getState(); },
         give: (cat) => give(cat),
+        mute: () => { toggleAllSound(); return { sound: Store.data.sound, voice: Store.data.voice, label: $('btnSound').textContent, mute: $('btnMute').textContent }; },
+        hint: (toAnswer) => { showHint(!!toAnswer); return getState(); },
         force: (e) => { const it = G.ITEMS.find((x) => x.e === e); if (it) showItem(it); return getState(); },
         // 一直按正确答案给，直到赢
         solve: async () => {
