@@ -457,6 +457,7 @@
   .house.blue { --c: #79b8f5; }
   .house.yellow { --c: #ffd15c; }
   .house.green { --c: #7fd49b; }
+  .house.purple { --c: #c9a7ff; }
   .house .slot {
     width: 96px; height: 96px;
     margin: 8px 0 4px;
@@ -492,7 +493,11 @@
   .pet.used { opacity: 0.25; }
 
   /* 线索 */
-  .clues { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 620px; }
+  .clues { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; max-width: 620px; }
+  @media (min-width: 900px) {
+    .clues.two { grid-template-columns: 1fr 1fr; max-width: 860px; }
+  }
+  #play { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .clue {
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     background: rgba(255, 255, 255, 0.8);
@@ -656,10 +661,12 @@
     { emoji: '🔎', name: '三条线索', desc: '线索多了，慢慢想' },
     { emoji: '🏘️', name: '四间房子', desc: '四只小动物' },
     { emoji: '🕵️', name: '小侦探', desc: '最难的推理' },
+    { emoji: '🦄', name: '独角兽来了', desc: '五间房子，五只小动物' },
+    { emoji: '🧠', name: '超级侦探', desc: '没有一条直接说住哪，全靠推理' },
   ];
 
-  const ANIMALS = ['🐰', '🐱', '🐻', '🐼'];
-  const COLORS = ['red', 'blue', 'yellow', 'green'];
+  const ANIMALS = ['🐰', '🐱', '🐻', '🐼', '🦄'];
+  const COLORS = ['red', 'blue', 'yellow', 'green', 'purple'];
 
   // sol[位置] = 动物下标；clues 里的 a/b 也是动物下标，p 是位置
   const LEVELS = [
@@ -682,7 +689,17 @@
     { id: '4-2', ch: 4, name: '绕一绕', n: 4, sol: [0,1,2,3], clues: [{t:'next',a:1,b:2},{t:'notAt',a:1,p:2},{t:'notNext',a:0,b:2},{t:'notNext',a:0,b:3}] },
     { id: '4-3', ch: 4, name: '五条线索', n: 4, sol: [1,3,2,0], clues: [{t:'notAt',a:1,p:1},{t:'notAt',a:1,p:3},{t:'notNext',a:0,b:3},{t:'notAt',a:0,p:1},{t:'left',a:2,b:0}] },
     { id: '4-4', ch: 4, name: '高手题', n: 4, sol: [2,1,3,0], clues: [{t:'next',a:0,b:3},{t:'notAt',a:0,p:2},{t:'left',a:2,b:1},{t:'notAt',a:1,p:3}] },
-    { id: '4-5', ch: 4, name: '最后一关', n: 4, sol: [0,3,2,1], clues: [{t:'notAt',a:3,p:3},{t:'notAt',a:0,p:2},{t:'notAt',a:3,p:0},{t:'notNext',a:1,b:3},{t:'notAt',a:3,p:2}] },  ];
+    { id: '4-5', ch: 4, name: '最后一关', n: 4, sol: [0,3,2,1], clues: [{t:'notAt',a:3,p:3},{t:'notAt',a:0,p:2},{t:'notAt',a:3,p:0},{t:'notNext',a:1,b:3},{t:'notAt',a:3,p:2}] },    { id: '5-1', ch: 5, name: '独角兽来了', n: 5, sol: [3,1,4,2,0], clues: [{t:'at',a:4,p:2},{t:'left',a:3,b:1},{t:'notEnd',a:2},{t:'rightOf',a:0,b:2}] },
+    { id: '5-2', ch: 5, name: '五间房', n: 5, sol: [4,1,0,3,2], clues: [{t:'notAt',a:0,p:1},{t:'last',a:2},{t:'left',a:3,b:2},{t:'notAt',a:1,p:0},{t:'rightOf',a:0,b:4}] },
+    { id: '5-3', ch: 5, name: '排排队', n: 5, sol: [2,4,0,3,1], clues: [{t:'notNext',a:1,b:4},{t:'next',a:0,b:3},{t:'at',a:1,p:4},{t:'notAt',a:0,p:3},{t:'left',a:2,b:4}] },
+    { id: '5-4', ch: 5, name: '想一想', n: 5, sol: [3,1,2,4,0], clues: [{t:'rightOf',a:0,b:2},{t:'notNext',a:1,b:4},{t:'rightOf',a:1,b:3},{t:'at',a:4,p:3}] },
+    { id: '5-5', ch: 5, name: '难一点', n: 5, sol: [3,1,0,2,4], clues: [{t:'left',a:3,b:1},{t:'rightOf',a:4,b:3},{t:'rightOf',a:2,b:0},{t:'notAt',a:0,p:0},{t:'notAt',a:2,p:4}] },
+    { id: '6-1', ch: 6, name: '大侦探', n: 5, sol: [0,3,1,2,4], clues: [{t:'notAt',a:0,p:1},{t:'notAt',a:2,p:4},{t:'next',a:0,b:3},{t:'notEnd',a:1},{t:'rightOf',a:2,b:0},{t:'rightOf',a:2,b:1}] },
+    { id: '6-2', ch: 6, name: '绕弯弯', n: 5, sol: [3,1,2,0,4], clues: [{t:'notAt',a:1,p:3},{t:'between',a:1,b:2,c:3},{t:'notAt',a:3,p:1},{t:'notAt',a:0,p:4},{t:'rightOf',a:2,b:3}] },
+    { id: '6-3', ch: 6, name: '全靠推', n: 5, sol: [2,1,0,3,4], clues: [{t:'notAt',a:4,p:3},{t:'rightOf',a:4,b:1},{t:'notAt',a:0,p:0},{t:'left',a:3,b:4},{t:'left',a:2,b:1}] },
+    { id: '6-4', ch: 6, name: '真难啊', n: 5, sol: [4,1,2,3,0], clues: [{t:'notAt',a:2,p:3},{t:'rightOf',a:2,b:4},{t:'next',a:1,b:2},{t:'rightOf',a:2,b:1},{t:'rightOf',a:0,b:1},{t:'notAt',a:3,p:4}] },
+    { id: '6-5', ch: 6, name: '最后一关', n: 5, sol: [3,2,4,1,0], clues: [{t:'rightOf',a:0,b:3},{t:'notNext',a:3,b:4},{t:'notNext',a:0,b:4},{t:'rightOf',a:0,b:1},{t:'notAt',a:2,p:3},{t:'left',a:3,b:2}] },
+  ];
 
   const posOf = (place, a) => place.indexOf(a);
 
@@ -698,6 +715,13 @@
       case 'left': return (pa < 0 || pb < 0) ? null : pa + 1 === pb;
       case 'next': return (pa < 0 || pb < 0) ? null : Math.abs(pa - pb) === 1;
       case 'notNext': return (pa < 0 || pb < 0) ? null : Math.abs(pa - pb) !== 1;
+      case 'middle': return pa < 0 ? null : pa === (place.length - 1) / 2;
+      case 'notEnd': return pa < 0 ? null : (pa !== 0 && pa !== place.length - 1);
+      case 'rightOf': return (pa < 0 || pb < 0) ? null : pa > pb;
+      case 'between': {
+        const pc = posOf(place, c.c);
+        return (pa < 0 || pb < 0 || pc < 0) ? null : (Math.abs(pa - pb) === 1 && Math.abs(pa - pc) === 1);
+      }
     }
     return null;
   }
@@ -757,6 +781,7 @@
   // 有的设备（部分 iPad、微信内置浏览器等）画不出彩色 emoji，就换成 icons/emoji 里的 Noto Emoji 图片
   const Emo = (() => {
     const FILES = {
+      '🧠': '1f9e0',
       '🐣': '1f423', '🐰': '1f430', '🐱': '1f431', '🐻': '1f43b', '🦊': '1f98a', '🐯': '1f42f',
       '🐼': '1f43c', '🐶': '1f436', '🐸': '1f438', '🐷': '1f437', '🦄': '1f984', '🐧': '1f427',
       '🐨': '1f428', '🦘': '1f998', '🐭': '1f42d', '🐺': '1f43a', '🐆': '1f406', '🦁': '1f981',
@@ -974,7 +999,8 @@
     const box = $('chapters');
     box.textContent = '';
     const firstOpen = G.LEVELS.findIndex((L, i) => unlocked(i) && !(Store.data.stars[L.id] > 0));
-    for (let ch = 1; ch <= 4; ch++) {
+    const chapters = Math.max(...G.LEVELS.map((L) => L.ch));
+    for (let ch = 1; ch <= chapters; ch++) {
       const C = G.CH[ch];
       const levels = G.LEVELS.filter((L) => L.ch === ch);
       const sec = mk('div', 'chapter');
@@ -1044,6 +1070,10 @@
     else if (c.t === 'left') { add('就在'); addE(c.b); add('的左边'); }
     else if (c.t === 'next') { add('和'); addE(c.b); add('挨着'); }
     else if (c.t === 'notNext') { add('和'); addE(c.b); add('不挨着'); }
+    else if (c.t === 'middle') add('住正中间');
+    else if (c.t === 'notEnd') add('不住两头');
+    else if (c.t === 'rightOf') { add('在'); addE(c.b); add('右边（隔开也行）'); }
+    else if (c.t === 'between') { add('就在'); addE(c.b); add('和'); addE(c.c); add('中间'); }
     const st = G.check(c, S.place);
     row.classList.toggle('ok', st === true);
     row.classList.toggle('bad', st === false);
@@ -1081,6 +1111,7 @@
 
     const cl = $('clues');
     cl.textContent = '';
+    cl.classList.toggle('two', lv.clues.length >= 5);   // 线索多时横屏排两列，免得按钮被挤出屏幕
     lv.clues.forEach((c) => cl.appendChild(clueEl(c)));
   }
 
